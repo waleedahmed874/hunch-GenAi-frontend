@@ -30,5 +30,5 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 8080
 
 # Start server on the port provided by Cloud Run, binding to 0.0.0.0
-CMD ["sh", "-c", "serve -s dist -l 0.0.0.0:${PORT:-8080}"]
+CMD ["sh", "-c", "serve -s dist -p ${PORT:-8080}"]
 
