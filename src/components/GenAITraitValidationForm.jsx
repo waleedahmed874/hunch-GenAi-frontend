@@ -86,7 +86,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTable(true);
       setTableError(null);
       try {
-        const response = await fetch('http://localhost:8080/api/traits/db');
+        const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
