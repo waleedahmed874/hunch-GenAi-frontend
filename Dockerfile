@@ -20,8 +20,11 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install serve globally to serve static files
-RUN npm install -g serve
+# Copy package files to install serve
+COPY package*.json ./
+
+# Install only serve (production dependency)
+RUN npm ci --only=production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
@@ -30,5 +33,5 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 8080
 
 # Start server on the port provided by Cloud Run, binding to 0.0.0.0
-CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT:-8080}"]
+CMD ["sh", "-c", "npx serve -s dist -l 0.0.0.0:${PORT:-8080}"]
 
