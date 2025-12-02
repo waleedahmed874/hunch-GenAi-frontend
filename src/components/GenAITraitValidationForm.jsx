@@ -130,7 +130,7 @@ const GenAITraitValidationForm = () => {
 
     console.log('Submitting form', apiData);
     try {
-      const response = await fetch('http://localhost:3000/api/traits/process', {
+      const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
