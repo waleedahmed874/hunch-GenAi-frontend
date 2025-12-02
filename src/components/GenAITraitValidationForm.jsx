@@ -4,7 +4,6 @@ import './GenAITraitValidationForm.css';
 const GenAITraitValidationForm = () => {
   const getInitialFormState = () => ({
     version: 'basic',
-    text: '',
     project_input: '',
     concept_input: ''
   });
@@ -15,6 +14,13 @@ const GenAITraitValidationForm = () => {
   const [tableData, setTableData] = useState([]);
   const [isLoadingTable, setIsLoadingTable] = useState(false);
   const [tableError, setTableError] = useState(null);
+  
+  // CSV upload states
+  const [csvFile, setCsvFile] = useState(null);
+  const [csvData, setCsvData] = useState([]);
+  const [csvColumns, setCsvColumns] = useState([]);
+  const [csvPreview, setCsvPreview] = useState([]);
+  const [useCsv, setUseCsv] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,32 +30,112 @@ const GenAITraitValidationForm = () => {
     }));
   };
 
+  // CSV file handler
+  const handleCsvUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setCsvFile(file);
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      const text = event.target.result;
+      parseCsv(text);
+    };
+    
+    reader.readAsText(file);
+  };
+
+  // Parse CSV to JSON
+  const parseCsv = (csvText) => {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length === 0) return;
+
+    // Get headers
+    const headers = lines[0].split(',').map(h => h.trim());
+    setCsvColumns(headers);
+
+    // Validate required columns
+    const requiredColumns = ['context_prompt', 'initial_reaction', 'uuid'];
+    const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+    
+    if (missingColumns.length > 0) {
+      alert(`Missing required columns: ${missingColumns.join(', ')}`);
+      setCsvFile(null);
+      setCsvData([]);
+      setCsvPreview([]);
+      return;
+    }
+
+    // Parse data rows
+    const parsedData = [];
+    const previewData = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      if (values.length !== headers.length) continue;
+
+      const row = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index];
+      });
+
+      parsedData.push(row);
+      
+      // Store first 5 rows for preview
+      if (i <= 5) {
+        previewData.push(row);
+      }
+    }
+
+    setCsvData(parsedData);
+    setCsvPreview(previewData);
+    setUseCsv(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setApiResponse(null);
     
-    // Prepare the data to send to the API
-    const apiData = {
-      text: formData.text.trim(),
-    version:formData.version
+    let apiData;
 
-    };
+    // If CSV is selected, send CSV data as JSON array
+    if (useCsv && csvData.length > 0) {
+      apiData = {
+        version: formData.version,
+        csv_data: csvData.map(row => ({
+          context_prompt: row.context_prompt || '',
+          initial_reaction: row.initial_reaction || '',
+          uuid: row.uuid || ''
+        }))
+      };
+      
+      // If version is context, also include project_input and concept_input
+      if (formData.version === 'context') {
+        apiData.project_input = formData.project_input.trim();
+        apiData.concept_input = formData.concept_input.trim();
+      }
+    } else {
+      // Original form submission
+      apiData = {
+        version: formData.version
+      };
 
-    // If type is context, include project and concept input
-    if (formData.version === 'context') {
-      apiData.project_input = formData.project_input.trim();
-      apiData.concept_input = formData.concept_input.trim();
+      if (formData.version === 'context') {
+        apiData.project_input = formData.project_input.trim();
+        apiData.concept_input = formData.concept_input.trim();
+      }
     }
 
     console.log('Submitting form', apiData);
     try {
-      const response = await fetch('http://localhost:8000/batch_classify', {
+      const response = await fetch('http://localhost:3000/api/traits/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body:JSON.stringify(apiData)
+        body: JSON.stringify(apiData)
       });
 
       if (!response.ok) {
@@ -79,7 +165,14 @@ const GenAITraitValidationForm = () => {
   const handleReset = () => {
     setFormData(getInitialFormState());
     setApiResponse(null);
+    setCsvFile(null);
+    setCsvData([]);
+    setCsvColumns([]);
+    setCsvPreview([]);
+    setUseCsv(false);
   };
+
+  // ... existing useEffect and getTraitStatus functions remain the same ...
 
   useEffect(() => {
     const fetchTableData = async () => {
@@ -149,21 +242,58 @@ const GenAITraitValidationForm = () => {
             </select>
           </div>
 
+          {/* CSV Upload Section */}
           <div className="form-group">
-            <label htmlFor="reactionText">
-              Reaction Text<span className="required">*</span>
+            <label htmlFor="csvUpload">
+              Upload CSV File (Optional)
             </label>
             <input
-              type="text"
-              id="reactionText"
-              name="text"
-              value={formData.text}
-              onChange={handleChange}
-              placeholder="Enter your reaction text here..."
-              required
+              type="file"
+              id="csvUpload"
+              accept=".csv"
+              onChange={handleCsvUpload}
+              style={{ marginBottom: '10px' }}
             />
+            <small style={{ display: 'block', color: '#666', marginTop: '5px' }}>
+              CSV must contain columns: context_prompt, initial_reaction, uuid
+            </small>
           </div>
 
+          {/* CSV Preview Table */}
+          {csvPreview.length > 0 && (
+            <div className="form-group">
+              <label>CSV Preview (showing first 5 rows)</label>
+              <div className="csv-preview-table">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f5f5f5' }}>
+                      {csvColumns.map((col, idx) => (
+                        <th key={idx} style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'left' }}>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvPreview.map((row, rowIdx) => (
+                      <tr key={rowIdx}>
+                        {csvColumns.map((col, colIdx) => (
+                          <td key={colIdx} style={{ padding: '8px', border: '1px solid #ddd' }}>
+                            {row[col] || '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+                  Total rows: {csvData.length}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Show context fields when version is context, regardless of CSV selection */}
           {formData.version === 'context' && (
             <>
               <div className="form-group">
@@ -206,6 +336,7 @@ const GenAITraitValidationForm = () => {
           </div>
         </form>
 
+        {/* ... existing apiResponse section remains the same ... */}
         {apiResponse && (
           <div className="response-container">
             <h2>Response</h2>
@@ -241,6 +372,7 @@ const GenAITraitValidationForm = () => {
         )}
       </div>
 
+      {/* ... existing table-container section remains the same ... */}
       <div className="table-container">
         <div className="table-container-inner">
           <h2>Traits Database</h2>
