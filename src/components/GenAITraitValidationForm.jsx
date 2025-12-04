@@ -14,6 +14,7 @@ const GenAITraitValidationForm = () => {
   const [tableData, setTableData] = useState([]);
   const [isLoadingTable, setIsLoadingTable] = useState(false);
   const [tableError, setTableError] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // CSV upload states
   const [csvFile, setCsvFile] = useState(null);
@@ -143,7 +144,6 @@ const GenAITraitValidationForm = () => {
       }
 
       const result = await response.json();
-      console.log('API Response:', result);
       setApiResponse(result);
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -170,6 +170,41 @@ const GenAITraitValidationForm = () => {
     setCsvColumns([]);
     setCsvPreview([]);
     setUseCsv(false);
+    // Reset file input
+    const fileInput = document.getElementById('csvUpload');
+    if (fileInput) fileInput.value = '';
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm('Are you sure you want to delete all data from Traits Database? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setTableError(null);
+    
+    try {
+      const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Clear the table data
+      setTableData([]);
+      alert('All data deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting data:', error);
+      setTableError(`Failed to delete data: ${error.message}`);
+      alert(`Error: ${error.message}`);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // ... existing useEffect and getTraitStatus functions remain the same ...
@@ -219,6 +254,208 @@ const GenAITraitValidationForm = () => {
     } else {
       return { color: 'grey', showTooltip: false };
     }
+  };
+
+  // Helper function to process traits from API response
+  const processTraits = (genAiRecords) => {
+    if (!genAiRecords || genAiRecords.length === 0) return [];
+
+    return genAiRecords.map(record => {
+      const llmScore = record.llmScore || 0;
+      const genAiScore = record.genAiSays?.score || 0;
+      
+      let icon = '';
+      let color = '';
+      let displayName = record.traitTitle;
+      
+      if (llmScore === 1 && genAiScore === 1) {
+        // Black checkbox icon, black font
+        icon = '✓';
+        color = 'black';
+      } else if (llmScore === 1 && genAiScore === 0) {
+        // Red X Icon, Red font for trait name in parentheses
+        icon = '✗';
+        color = 'red';
+        displayName = `(${record.traitTitle})`;
+      } else if (llmScore === 0 && genAiScore === 1) {
+        // Green Plus Sign Icon, Green Font
+        icon = '+';
+        color = 'green';
+      } else {
+        // llmScore 0, genAiScore 0 - not listed
+        return null;
+      }
+
+      return {
+        name: record.traitTitle,
+        displayName,
+        icon,
+        color,
+        rationale: record.genAiSays?.rationale || '',
+        confidence: record.genAiSays?.confidence || 0,
+        present: record.genAiSays?.present || false
+      };
+    }).filter(trait => trait !== null);
+  };
+
+  // Helper function to render response table
+  const renderResponseTable = () => {
+    if (!apiResponse) {
+      return null;
+    }
+    
+    if (apiResponse.error) {
+      return (
+        <div className="error-box">
+          <p><strong>Error:</strong> {apiResponse.error}</p>
+        </div>
+      );
+    }
+
+    console.log('=== RENDERING RESPONSE TABLE ===');
+    console.log('API Response:', apiResponse);
+    
+    // Handle different response structures
+    let dataArray = null;
+    if (Array.isArray(apiResponse)) {
+      dataArray = apiResponse;
+    } else if (apiResponse.data && Array.isArray(apiResponse.data)) {
+      dataArray = apiResponse.data;
+    } else if (apiResponse.results && Array.isArray(apiResponse.results)) {
+      dataArray = apiResponse.results;
+    }
+
+    console.log('Data Array:', dataArray);
+    console.log('Data Array Length:', dataArray?.length);
+
+    // Flatten data to create table rows
+    const tableRows = [];
+    if (dataArray && dataArray.length > 0) {
+      dataArray.forEach((item, idx) => {
+        console.log(`Processing item ${idx}:`, item);
+        console.log('Item has initial_reaction:', !!item.initial_reaction);
+        console.log('Item has context_prompt:', !!item.context_prompt);
+        
+        // Add Initial Reaction row
+        if (item.initial_reaction) {
+          console.log('Initial Reaction genAiRecords:', item.initial_reaction.genAiRecords);
+          const processedTraits = processTraits(item.initial_reaction.genAiRecords);
+          console.log('Processed Initial Reaction Traits:', processedTraits);
+          tableRows.push({
+            id: `${item._id || idx}_initial`,
+            version: item.version || '',
+            type: item.initial_reaction.type || 'INITIAL_REACTION',
+            text: item.initial_reaction.text || '',
+            traits: processedTraits
+          });
+        }
+        
+        // Add Context Prompt row
+        if (item.context_prompt) {
+          console.log('Context Prompt genAiRecords:', item.context_prompt.genAiRecords);
+          const processedTraits = processTraits(item.context_prompt.genAiRecords);
+          console.log('Processed Context Prompt Traits:', processedTraits);
+          tableRows.push({
+            id: `${item._id || idx}_context`,
+            version: item.version || '',
+            type: item.context_prompt.type || 'CONTEXT_PROMPT',
+            text: item.context_prompt.text || '',
+            traits: processedTraits
+          });
+        }
+      });
+    } else {
+      console.log('No dataArray or dataArray is empty');
+    }
+
+    console.log('Final Table Rows:', tableRows);
+    console.log('Table Rows Count:', tableRows.length);
+
+    if (tableRows.length === 0) {
+      return (
+        <div className="results-box" style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#fff' }}>
+          <p><strong>No data to display in table.</strong></p>
+          <div style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
+            <p><strong>Debug Info:</strong></p>
+            <ul style={{ marginLeft: '20px' }}>
+              <li>Data Array: {dataArray ? `Found ${dataArray.length} items` : 'Not found'}</li>
+              <li>API Response Keys: {Object.keys(apiResponse || {}).join(', ') || 'None'}</li>
+              <li>Is Array: {Array.isArray(apiResponse) ? 'Yes' : 'No'}</li>
+              <li>Has data property: {apiResponse.data ? 'Yes' : 'No'}</li>
+              <li>Has results property: {apiResponse.results ? 'Yes' : 'No'}</li>
+            </ul>
+          </div>
+          <details style={{ marginTop: '15px' }}>
+            <summary style={{ cursor: 'pointer', color: '#666', fontWeight: 'bold' }}>View Full Response Structure (Click to expand)</summary>
+            <pre style={{ 
+              backgroundColor: '#f5f5f5', 
+              padding: '15px', 
+              borderRadius: '4px', 
+              overflow: 'auto',
+              maxHeight: '400px',
+              fontSize: '12px',
+              marginTop: '10px',
+              border: '1px solid #ddd'
+            }}>
+              {JSON.stringify(apiResponse, null, 2)}
+            </pre>
+          </details>
+        </div>
+      );
+    }
+
+    return (
+      <div className="table-wrapper" style={{ marginTop: '20px' }}>
+        <table className="traits-table">
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Type</th>
+              <th>Text</th>
+              <th>Traits</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tableRows.map((row) => (
+              <tr key={row.id}>
+                <td className="type-cell">{row.version}</td>
+                <td className="type-cell">{row.type}</td>
+                <td className="text-cell">{row.text}</td>
+                <td className="traits-cell">
+                  <div className="traits-list-inline">
+                    {row.traits && row.traits.length > 0 ? (
+                      row.traits.map((trait, index) => (
+                        <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                          <span
+                            style={{
+                              color: trait.color,
+                              fontWeight: 'bold',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              border: `1px solid ${trait.color}`,
+                              backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6'
+                            }}
+                            title={trait.rationale || trait.name}
+                          >
+                            <span style={{ fontSize: '14px' }}>{trait.icon}</span>
+                            <span className="trait-name">{trait.displayName}</span>
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <span style={{ color: '#999', fontStyle: 'italic' }}>No traits</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
   return (
@@ -336,38 +573,10 @@ const GenAITraitValidationForm = () => {
           </div>
         </form>
 
-        {/* ... existing apiResponse section remains the same ... */}
         {apiResponse && (
           <div className="response-container">
             <h2>Response</h2>
-            {apiResponse.error ? (
-              <div className="error-box">
-                <p><strong>Error:</strong> {apiResponse.error}</p>
-              </div>
-            ) : (
-              <div className="results-box">
-                <div className="results-header">
-                  <p><strong>Total Traits:</strong> {apiResponse.total_traits}</p>
-                </div>
-                <div className="traits-list">
-                  {apiResponse.results && apiResponse.results.map((trait, index) => (
-                    <div key={index} className="trait-card">
-                      <div className="trait-header">
-                        <h3>{trait.trait}</h3>
-                        <span className={`badge ${trait.present ? 'present' : 'absent'}`}>
-                          {trait.present ? 'Present' : 'Absent'}
-                        </span>
-                      </div>
-                      <div className="trait-details">
-                        <p><strong>Confidence:</strong> {(trait.confidence * 100).toFixed(0)}%</p>
-                        <p><strong>Score:</strong> {trait.score}</p>
-                        <p><strong>Rationale:</strong> {trait.rationale}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {renderResponseTable()}
           </div>
         )}
       </div>
@@ -375,7 +584,28 @@ const GenAITraitValidationForm = () => {
       {/* ... existing table-container section remains the same ... */}
       <div className="table-container">
         <div className="table-container-inner">
-          <h2>Traits Database</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0 }}>Traits Database</h2>
+            <button
+              onClick={handleDeleteAll}
+              disabled={isDeleting || isLoadingTable || tableData.length === 0}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: (isDeleting || isLoadingTable || tableData.length === 0) ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                opacity: (isDeleting || isLoadingTable || tableData.length === 0) ? 0.6 : 1,
+                transition: 'opacity 0.3s'
+              }}
+              title={tableData.length === 0 ? 'No data to delete' : 'Delete all data from Traits Database'}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete All'}
+            </button>
+          </div>
           {isLoadingTable && <p className="loading-text">Loading data...</p>}
           {tableError && (
             <div className="error-box">
@@ -387,40 +617,78 @@ const GenAITraitValidationForm = () => {
               <table className="traits-table">
                 <thead>
                   <tr>
+                    <th>Version</th>
                     <th>Type</th>
                     <th>Text</th>
                     <th>Traits</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {tableData.map((item) => (
-                    <tr key={item._id}>
-                      <td className="type-cell">{item.type}</td>
-                      <td className="text-cell">{item.text}</td>
-                      <td className="traits-cell">
-                        <div className="traits-list-inline">
-                          {item.traits?.map((traitName, index) => {
-                            const status = getTraitStatus(item, traitName);
-                            return (
-                              <div key={index} className="trait-indicator-wrapper">
-                                <div className={`trait-circle trait-circle-${status.color}`}>
-                                  {status.showTooltip && (
-                                    <div className="tooltip">
-                                      <div className="tooltip-content">
-                                        <p><strong>Rationale:</strong> {status.rationale}</p>
-                                        <p><strong>Confidence:</strong> {(status.confidence * 100).toFixed(0)}%</p>
-                                      </div>
-                                    </div>
-                                  )}
+                  {(() => {
+                    // Flatten tableData to show initial_reaction and context_prompt as separate rows
+                    const flattenedRows = [];
+                    tableData.forEach((item) => {
+                      // Add Initial Reaction row
+                      if (item.initial_reaction) {
+                        const processedTraits = processTraits(item.initial_reaction.genAiRecords);
+                        flattenedRows.push({
+                          id: `${item._id}_initial`,
+                          version: item.version || '',
+                          type: item.initial_reaction.type || 'INITIAL_REACTION',
+                          text: item.initial_reaction.text || '',
+                          traits: processedTraits
+                        });
+                      }
+                      // Add Context Prompt row
+                      if (item.context_prompt) {
+                        const processedTraits = processTraits(item.context_prompt.genAiRecords);
+                        flattenedRows.push({
+                          id: `${item._id}_context`,
+                          version: item.version || '',
+                          type: item.context_prompt.type || 'CONTEXT_PROMPT',
+                          text: item.context_prompt.text || '',
+                          traits: processedTraits
+                        });
+                      }
+                    });
+                    
+                    return flattenedRows.map((row) => (
+                      <tr key={row.id}>
+                        <td className="type-cell">{row.version}</td>
+                        <td className="type-cell">{row.type}</td>
+                        <td className="text-cell">{row.text}</td>
+                        <td className="traits-cell">
+                          <div className="traits-list-inline">
+                            {row.traits && row.traits.length > 0 ? (
+                              row.traits.map((trait, index) => (
+                                <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                                  <span
+                                    style={{
+                                      color: trait.color,
+                                      fontWeight: 'bold',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      border: `1px solid ${trait.color}`,
+                                      backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6'
+                                    }}
+                                    title={trait.rationale || trait.name}
+                                  >
+                                    <span style={{ fontSize: '14px' }}>{trait.icon}</span>
+                                    <span className="trait-name">{trait.displayName}</span>
+                                  </span>
                                 </div>
-                                <span className="trait-name">{traitName}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                              ))
+                            ) : (
+                              <span style={{ color: '#999', fontStyle: 'italic' }}>No traits</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
