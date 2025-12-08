@@ -57,7 +57,7 @@ const GenAITraitValidationForm = () => {
     setCsvColumns(headers);
 
     // Validate required columns
-    const requiredColumns = ['context_prompt', 'initial_reaction', 'uuid'];
+    const requiredColumns = ['context_prompt', 'initial_reaction'];
     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
     
     if (missingColumns.length > 0) {
