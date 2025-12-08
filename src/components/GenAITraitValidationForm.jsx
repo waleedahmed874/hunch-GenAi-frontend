@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './GenAITraitValidationForm.css';
 
 const GenAITraitValidationForm = () => {
@@ -15,6 +15,10 @@ const GenAITraitValidationForm = () => {
   const [isLoadingTable, setIsLoadingTable] = useState(false);
   const [tableError, setTableError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // WebSocket states
+  const [wsConnected, setWsConnected] = useState(false);
+  const wsRef = useRef(null);
   
   // CSV upload states
   const [csvFile, setCsvFile] = useState(null);
@@ -144,7 +148,20 @@ const GenAITraitValidationForm = () => {
       }
 
       const result = await response.json();
+      console.log('Form submission response:', result);
+      
+      // Set API response to show in response table
       setApiResponse(result);
+      
+      // If result has data array, also add to Traits Database table
+      if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+        setTableData(prev => {
+          // Merge new data with existing, avoiding duplicates
+          const existingIds = new Set(prev.map(item => item._id));
+          const newItems = result.data.filter(item => !existingIds.has(item._id));
+          return [...prev, ...newItems];
+        });
+      }
     } catch (error) {
       console.error('Error submitting form:', error);
       let errorMessage = error.message;
@@ -234,6 +251,171 @@ const GenAITraitValidationForm = () => {
 
     fetchTableData();
   }, []);
+
+  // Handle WebSocket updates
+  const handleWebSocketUpdate = useCallback((data) => {
+    switch (data.type) {
+      case 'connected':
+        console.log('Connection established:', data.message);
+        break;
+
+      case 'processing_started':
+        console.log('Processing started:', data);
+        // Show processing status in response
+        if (apiResponse) {
+          setApiResponse(prev => ({
+            ...prev,
+            processing: true,
+            status: 'Processing started...',
+            totalItems: data.totalItems
+          }));
+        }
+        break;
+
+      case 'document_created':
+        console.log('Document created:', data);
+        // Add new document to Traits Database table
+        if (data.document) {
+          setTableData(prev => {
+            // Check if document already exists
+            const exists = prev.some(doc => doc._id === data.document._id);
+            if (!exists) {
+              return [...prev, data.document];
+            }
+            return prev;
+          });
+          
+          // Also update response table if this document is part of current response
+          if (apiResponse && apiResponse.data) {
+            setApiResponse(prev => {
+              if (prev.data && Array.isArray(prev.data)) {
+                const exists = prev.data.some(doc => doc._id === data.document._id);
+                if (!exists) {
+                  return {
+                    ...prev,
+                    data: [...prev.data, data.document]
+                  };
+                }
+              }
+              return prev;
+            });
+          }
+        }
+        break;
+
+      case 'trait_added':
+      case 'trait_removed':
+      case 'trait_updated':
+        console.log('Trait update:', data.type, data);
+        // Update existing document in Traits Database table
+        if (data.document && data.documentId) {
+          setTableData(prev =>
+            prev.map(doc =>
+              doc._id === data.documentId ? data.document : doc
+            )
+          );
+          
+          // Also update response table if this document is part of current response
+          if (apiResponse && apiResponse.data) {
+            setApiResponse(prev => {
+              if (prev.data && Array.isArray(prev.data)) {
+                return {
+                  ...prev,
+                  data: prev.data.map(doc =>
+                    doc._id === data.documentId ? data.document : doc
+                  )
+                };
+              }
+              return prev;
+            });
+          }
+        }
+        break;
+
+      case 'processing_completed':
+        console.log('Processing completed:', data);
+        // Update response status
+        if (apiResponse) {
+          setApiResponse(prev => ({
+            ...prev,
+            processing: false,
+            status: 'Processing completed!',
+            savedDocuments: data.savedDocuments
+          }));
+        }
+        break;
+
+      case 'task_queued':
+        console.log('Task queued:', data);
+        break;
+
+      default:
+        console.log('Unknown WebSocket message type:', data);
+    }
+  }, [apiResponse]);
+
+  // WebSocket connection for live updates
+  useEffect(() => {
+    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
+    let reconnectTimeout = null;
+
+    const connectWebSocket = () => {
+      try {
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+          console.log('✅ WebSocket connected');
+          setWsConnected(true);
+          if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+          }
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('WebSocket message received:', data);
+            handleWebSocketUpdate(data);
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+          }
+        };
+
+        ws.onclose = () => {
+          console.log('❌ WebSocket disconnected');
+          setWsConnected(false);
+          // Auto-reconnect after 3 seconds
+          reconnectTimeout = setTimeout(() => {
+            if (wsRef.current?.readyState === WebSocket.CLOSED) {
+              connectWebSocket();
+            }
+          }, 3000);
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setWsConnected(false);
+        };
+      } catch (error) {
+        console.error('Error creating WebSocket:', error);
+        setWsConnected(false);
+      }
+    };
+
+    connectWebSocket();
+
+    // Cleanup
+    return () => {
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [handleWebSocketUpdate]);
 
   const getTraitStatus = (item, traitName) => {
     const genAiRecord = item.genAiRecords?.find(record => record.traitTitle === traitName);
@@ -585,7 +767,26 @@ const GenAITraitValidationForm = () => {
       <div className="table-container">
         <div className="table-container-inner">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ margin: 0 }}>Traits Database</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <h2 style={{ margin: 0 }}>Traits Database</h2>
+              <span
+                style={{
+                  fontSize: '12px',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  backgroundColor: wsConnected ? '#d4edda' : '#f8d7da',
+                  color: wsConnected ? '#155724' : '#721c24',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title={wsConnected ? 'WebSocket Connected - Live Updates Active' : 'WebSocket Disconnected - No Live Updates'}
+              >
+                <span>{wsConnected ? '🟢' : '🔴'}</span>
+                {wsConnected ? 'Live' : 'Offline'}
+              </span>
+            </div>
             <button
               onClick={handleDeleteAll}
               disabled={isDeleting || isLoadingTable || tableData.length === 0}
