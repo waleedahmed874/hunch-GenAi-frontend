@@ -755,12 +755,6 @@ const GenAITraitValidationForm = () => {
           </div>
         </form>
 
-        {apiResponse && (
-          <div className="response-container">
-            <h2>Response</h2>
-            {renderResponseTable()}
-          </div>
-        )}
       </div>
 
       {/* ... existing table-container section remains the same ... */}
