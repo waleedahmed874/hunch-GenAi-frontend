@@ -192,6 +192,154 @@ const GenAITraitValidationForm = () => {
     if (fileInput) fileInput.value = '';
   };
 
+  // Function to analyze traits and identify changes
+  const analyzeTraits = (item, type) => {
+    const reactionData = type === 'initial_reaction' ? item.initial_reaction : item.context_prompt;
+    if (!reactionData) return null;
+
+    const originalTraits = reactionData.traits || [];
+    const genAiRecords = reactionData.genAiRecords || [];
+
+    // Create a map of trait names to their scores
+    const traitMap = new Map();
+    genAiRecords.forEach(record => {
+      const llmScore = record.llmScore || 0;
+      const genAiScore = record.genAiSays?.score || 0;
+      traitMap.set(record.traitTitle, {
+        llmScore,
+        genAiScore
+      });
+    });
+
+    // Identify changes
+    const addedTraits = [];
+    const removedTraits = [];
+    const unchangedTraits = [];
+
+    // Check all traits in genAiRecords
+    traitMap.forEach((scores, traitName) => {
+      if (scores.llmScore === 1 && scores.genAiScore === 1) {
+        // Unchanged - was in original and GenAI confirmed
+        unchangedTraits.push(traitName);
+      } else if (scores.llmScore === 1 && scores.genAiScore === 0) {
+        // Removed - was in original but GenAI says no
+        removedTraits.push(traitName);
+      } else if (scores.llmScore === 0 && scores.genAiScore === 1) {
+        // Added - wasn't in original but GenAI says yes
+        addedTraits.push(traitName);
+      }
+    });
+
+    // Also check original traits that might not be in genAiRecords
+    originalTraits.forEach(traitName => {
+      if (!traitMap.has(traitName)) {
+        // Trait in original but not analyzed by GenAI
+        unchangedTraits.push(traitName);
+      }
+    });
+
+    return {
+      originalTraits: originalTraits.join('; '),
+      addedTraits: addedTraits.join('; '),
+      removedTraits: removedTraits.join('; '),
+      unchangedTraits: unchangedTraits.join('; '),
+      hasChanges: addedTraits.length > 0 || removedTraits.length > 0,
+      totalOriginal: originalTraits.length,
+      totalAdded: addedTraits.length,
+      totalRemoved: removedTraits.length
+    };
+  };
+
+  // Function to download data as CSV
+  const handleDownloadCSV = () => {
+    if (tableData.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    // Prepare CSV data
+    const csvRows = [];
+    
+    // CSV Headers
+    const headers = [
+      'Document ID',
+      'Version',
+      'Type',
+      'Text',
+      'Original Traits',
+      'GenAI Made Changes',
+      'Traits Added',
+      'Traits Removed',
+      'Unchanged Traits',
+      'Total Original',
+      'Total Added',
+      'Total Removed'
+    ];
+    csvRows.push(headers.join(','));
+
+    // Process each document
+    tableData.forEach((item) => {
+      // Process Initial Reaction
+      if (item.initial_reaction) {
+        const analysis = analyzeTraits(item, 'initial_reaction');
+        if (analysis) {
+          const row = [
+            `"${item._id || ''}"`,
+            `"${item.version || ''}"`,
+            `"INITIAL_REACTION"`,
+            `"${(item.initial_reaction.text || '').replace(/"/g, '""')}"`,
+            `"${analysis.originalTraits}"`,
+            `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
+            `"${analysis.addedTraits}"`,
+            `"${analysis.removedTraits}"`,
+            `"${analysis.unchangedTraits}"`,
+            analysis.totalOriginal,
+            analysis.totalAdded,
+            analysis.totalRemoved
+          ];
+          csvRows.push(row.join(','));
+        }
+      }
+
+      // Process Context Prompt
+      if (item.context_prompt) {
+        const analysis = analyzeTraits(item, 'context_prompt');
+        if (analysis) {
+          const row = [
+            `"${item._id || ''}"`,
+            `"${item.version || ''}"`,
+            `"CONTEXT_PROMPT"`,
+            `"${(item.context_prompt.text || '').replace(/"/g, '""')}"`,
+            `"${analysis.originalTraits}"`,
+            `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
+            `"${analysis.addedTraits}"`,
+            `"${analysis.removedTraits}"`,
+            `"${analysis.unchangedTraits}"`,
+            analysis.totalOriginal,
+            analysis.totalAdded,
+            analysis.totalRemoved
+          ];
+          csvRows.push(row.join(','));
+        }
+      }
+    });
+
+    // Create CSV content
+    const csvContent = csvRows.join('\n');
+    
+    // Create blob and download
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `traits_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleDeleteAll = async () => {
     if (!window.confirm('Are you sure you want to delete all data from Traits Database? This action cannot be undone.')) {
       return;
@@ -781,25 +929,50 @@ const GenAITraitValidationForm = () => {
                 {wsConnected ? 'Live' : 'Offline'}
               </span>
             </div>
-            <button
-              onClick={handleDeleteAll}
-              disabled={isDeleting || isLoadingTable || tableData.length === 0}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: (isDeleting || isLoadingTable || tableData.length === 0) ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                opacity: (isDeleting || isLoadingTable || tableData.length === 0) ? 0.6 : 1,
-                transition: 'opacity 0.3s'
-              }}
-              title={tableData.length === 0 ? 'No data to delete' : 'Delete all data from Traits Database'}
-            >
-              {isDeleting ? 'Deleting...' : 'Delete All'}
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleDownloadCSV}
+                disabled={isLoadingTable || tableData.length === 0}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: (isLoadingTable || tableData.length === 0) ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  opacity: (isLoadingTable || tableData.length === 0) ? 0.6 : 1,
+                  transition: 'opacity 0.3s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title={tableData.length === 0 ? 'No data to export' : 'Download data as CSV/Excel'}
+              >
+                <span>📥</span>
+                Download CSV
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={isDeleting || isLoadingTable || tableData.length === 0}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: (isDeleting || isLoadingTable || tableData.length === 0) ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  opacity: (isDeleting || isLoadingTable || tableData.length === 0) ? 0.6 : 1,
+                  transition: 'opacity 0.3s'
+                }}
+                title={tableData.length === 0 ? 'No data to delete' : 'Delete all data from Traits Database'}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete All'}
+              </button>
+            </div>
           </div>
           {isLoadingTable && <p className="loading-text">Loading data...</p>}
           {tableError && (
