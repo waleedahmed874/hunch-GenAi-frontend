@@ -1344,7 +1344,7 @@ const GenAITraitValidationForm = () => {
                   setIsSubmittingFeedback(true);
                   try {
                     // TODO: Replace with actual API endpoint
-                    const response = await fetch('http://localhost:3000/api/traits/feedback', {
+                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
