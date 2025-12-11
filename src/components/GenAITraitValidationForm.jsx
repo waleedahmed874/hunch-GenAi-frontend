@@ -16,6 +16,11 @@ const GenAITraitValidationForm = () => {
   const [tableError, setTableError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
+  // Trait feedback modal state
+  const [selectedTraitFeedback, setSelectedTraitFeedback] = useState(null);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  
   // WebSocket states
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef(null);
@@ -269,30 +274,56 @@ const GenAITraitValidationForm = () => {
       'Original Traits',
       'GenAI Made Changes',
       'Traits Added',
+      'Added Traits Feedback',
       'Traits Removed',
+      'Removed Traits Feedback',
       'Unchanged Traits',
+      'Unchanged Traits Feedback',
       'Total Original',
       'Total Added',
       'Total Removed'
     ];
     csvRows.push(headers.join(','));
 
+    // Helper: get feedback joined for traits (array of trait names)
+    function getFeedbackString(genAiRecords, traitNames) {
+      if (!Array.isArray(traitNames)) return '';
+      return traitNames
+        .map(traitName => {
+          if (!traitName?.trim()) return '';
+          const rec = (genAiRecords || []).find(r => r.traitTitle === traitName.trim());
+          const feedback = rec && (rec.feedback || rec?.genAiSays?.feedback || '');
+          return feedback && feedback.trim() !== ''
+            ? `${traitName} (feedback: ${feedback.replace(/\"/g, '"')})`
+            : traitName;
+        })
+        .filter(Boolean)
+        .join('; ');
+    }
+
     // Process each document
     tableData.forEach((item) => {
       // Process Initial Reaction
       if (item.initial_reaction) {
         const analysis = analyzeTraits(item, 'initial_reaction');
+        const genAiRecords = item.initial_reaction.genAiRecords || [];
         if (analysis) {
+          const addedFeedback = getFeedbackString(genAiRecords, analysis.addedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
+          const removedFeedback = getFeedbackString(genAiRecords, analysis.removedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
+          const unchangedFeedback = getFeedbackString(genAiRecords, analysis.unchangedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
           const row = [
             `"${item._id || ''}"`,
             `"${item.version || ''}"`,
             `"INITIAL_REACTION"`,
-            `"${(item.initial_reaction.text || '').replace(/"/g, '""')}"`,
+            `"${(item.initial_reaction.text || '').replace(/\"/g, '"')}"`,
             `"${analysis.originalTraits}"`,
             `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
             `"${analysis.addedTraits}"`,
+            `"${addedFeedback}"`,
             `"${analysis.removedTraits}"`,
+            `"${removedFeedback}"`,
             `"${analysis.unchangedTraits}"`,
+            `"${unchangedFeedback}"`,
             analysis.totalOriginal,
             analysis.totalAdded,
             analysis.totalRemoved
@@ -304,17 +335,24 @@ const GenAITraitValidationForm = () => {
       // Process Context Prompt
       if (item.context_prompt) {
         const analysis = analyzeTraits(item, 'context_prompt');
+        const genAiRecords = item.context_prompt.genAiRecords || [];
         if (analysis) {
+          const addedFeedback = getFeedbackString(genAiRecords, analysis.addedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
+          const removedFeedback = getFeedbackString(genAiRecords, analysis.removedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
+          const unchangedFeedback = getFeedbackString(genAiRecords, analysis.unchangedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
           const row = [
             `"${item._id || ''}"`,
             `"${item.version || ''}"`,
             `"CONTEXT_PROMPT"`,
-            `"${(item.context_prompt.text || '').replace(/"/g, '""')}"`,
+            `"${(item.context_prompt.text || '').replace(/\"/g, '"')}"`,
             `"${analysis.originalTraits}"`,
             `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
             `"${analysis.addedTraits}"`,
+            `"${addedFeedback}"`,
             `"${analysis.removedTraits}"`,
+            `"${removedFeedback}"`,
             `"${analysis.unchangedTraits}"`,
+            `"${unchangedFeedback}"`,
             analysis.totalOriginal,
             analysis.totalAdded,
             analysis.totalRemoved
@@ -623,7 +661,12 @@ const GenAITraitValidationForm = () => {
         color,
         rationale: record.genAiSays?.rationale || '',
         confidence: record.genAiSays?.confidence || 0,
-        present: record.genAiSays?.present || false
+        present: record.genAiSays?.present || false,
+        llmScore: llmScore,
+        genAiScore: genAiScore,
+        action: record.action || 'No change',
+        finalScore: record.finalScore || 0,
+        feedback: record.feedback || record.genAiSays?.feedback || ''
       };
     }).filter(trait => trait !== null);
   };
@@ -766,12 +809,28 @@ const GenAITraitValidationForm = () => {
                               padding: '4px 8px',
                               borderRadius: '4px',
                               border: `1px solid ${trait.color}`,
-                              backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6'
+                              backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
+                              position: 'relative'
                             }}
                             title={trait.rationale || trait.name}
                           >
                             <span style={{ fontSize: '14px' }}>{trait.icon}</span>
                             <span className="trait-name">{trait.displayName}</span>
+                            {/* Black dot if feedback exists */}
+                            {trait.feedback && trait.feedback.trim() !== '' && (
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  marginLeft: '5px',
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#111',
+                                  verticalAlign: 'middle'
+                                }}
+                                title="Feedback added"
+                              />
+                            )}
                           </span>
                         </div>
                       ))
@@ -1031,6 +1090,14 @@ const GenAITraitValidationForm = () => {
                               row.traits.map((trait, index) => (
                                 <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
                                   <span
+                                    onClick={() => {
+                                      setSelectedTraitFeedback({
+                                        ...trait,
+                                        documentId: row.id.split('_')[0],
+                                        type: row.type
+                                      });
+                                      setFeedbackText(trait.feedback || '');
+                                    }}
                                     style={{
                                       color: trait.color,
                                       fontWeight: 'bold',
@@ -1040,12 +1107,39 @@ const GenAITraitValidationForm = () => {
                                       padding: '4px 8px',
                                       borderRadius: '4px',
                                       border: `1px solid ${trait.color}`,
-                                      backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6'
+                                      backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s',
+                                      userSelect: 'none',
+                                      position: 'relative'
                                     }}
-                                    title={trait.rationale || trait.name}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.transform = 'scale(1.05)';
+                                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.transform = 'scale(1)';
+                                      e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                    title="Click to view feedback"
                                   >
                                     <span style={{ fontSize: '14px' }}>{trait.icon}</span>
                                     <span className="trait-name">{trait.displayName}</span>
+                                    {/* Black dot if feedback exists */}
+                                    {trait.feedback && trait.feedback.trim() !== '' && (
+                                      <span
+                                        style={{
+                                          display: 'inline-block',
+                                          marginLeft: '5px',
+                                          width: '8px',
+                                          height: '8px',
+                                          borderRadius: '50%',
+                                          backgroundColor: '#111',
+                                          verticalAlign: 'middle'
+                                        }}
+                                        title="Feedback added"
+                                      />
+                                    )}
                                   </span>
                                 </div>
                               ))
@@ -1066,6 +1160,237 @@ const GenAITraitValidationForm = () => {
           )}
         </div>
       </div>
+
+      {/* Trait Feedback Modal */}
+      {selectedTraitFeedback && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+          onClick={() => setSelectedTraitFeedback(null)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              padding: '30px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px', color: selectedTraitFeedback.color }}>
+                  {selectedTraitFeedback.icon}
+                </span>
+                <span>Trait Feedback: {selectedTraitFeedback.name}</span>
+              </h2>
+              <button
+                onClick={() => setSelectedTraitFeedback(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666',
+                  padding: '0',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <strong style={{ color: '#666' }}>Status:</strong>
+              <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ 
+                  padding: '4px 12px', 
+                  borderRadius: '4px',
+                  backgroundColor: selectedTraitFeedback.color === 'black' ? '#f5f5f5' : 
+                                   selectedTraitFeedback.color === 'red' ? '#ffe6e6' : '#e6ffe6',
+                  color: selectedTraitFeedback.color,
+                  fontWeight: 'bold'
+                }}>
+                  {selectedTraitFeedback.llmScore === 1 && selectedTraitFeedback.genAiScore === 1 && '✓ Confirmed'}
+                  {selectedTraitFeedback.llmScore === 1 && selectedTraitFeedback.genAiScore === 0 && '✗ Removed'}
+                  {selectedTraitFeedback.llmScore === 0 && selectedTraitFeedback.genAiScore === 1 && '+ Added'}
+                </span>
+                <span style={{ color: '#666', fontSize: '14px' }}>
+                  (Hunch LLM: {selectedTraitFeedback.llmScore === 1 ? 'Yes' : 'No'}, 
+                  GenAI: {selectedTraitFeedback.genAiScore === 1 ? 'Yes' : 'No'})
+                </span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <strong style={{ color: '#666' }}>Action:</strong>
+              <p style={{ margin: '5px 0 0 0', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                {selectedTraitFeedback.action || 'No change'}
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <strong style={{ color: '#666' }}>Confidence:</strong>
+              <div style={{ marginTop: '5px' }}>
+                <div style={{ 
+                  width: '100%', 
+                  height: '20px', 
+                  backgroundColor: '#e0e0e0', 
+                  borderRadius: '10px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${(selectedTraitFeedback.confidence || 0) * 100}%`,
+                    height: '100%',
+                    backgroundColor: selectedTraitFeedback.confidence >= 0.8 ? '#28a745' : 
+                                     selectedTraitFeedback.confidence >= 0.6 ? '#ffc107' : '#dc3545',
+                    transition: 'width 0.3s'
+                  }}></div>
+                </div>
+                <span style={{ fontSize: '14px', color: '#666', marginTop: '5px', display: 'block' }}>
+                  {(selectedTraitFeedback.confidence || 0).toFixed(2)} ({(selectedTraitFeedback.confidence || 0) * 100}%)
+                </span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <strong style={{ color: '#666' }}>GenAI Present:</strong>
+              <p style={{ margin: '5px 0 0 0', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                {selectedTraitFeedback.present ? 'Yes' : 'No'}
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Rationale:</strong>
+              <p style={{ 
+                margin: '0', 
+                padding: '12px', 
+                backgroundColor: '#f9f9f9', 
+                borderRadius: '4px',
+                lineHeight: '1.6',
+                whiteSpace: 'pre-wrap',
+                border: '1px solid #e0e0e0',
+                fontSize: '14px'
+              }}>
+                {selectedTraitFeedback.rationale || 'No rationale provided'}
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#666', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Feedback:
+              </label>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Enter your feedback..."
+                style={{
+                  width: '100%',
+                  minHeight: '100px',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={() => {
+                  setSelectedTraitFeedback(null);
+                  setFeedbackText('');
+                }}
+                disabled={isSubmittingFeedback}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: isSubmittingFeedback ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  opacity: isSubmittingFeedback ? 0.6 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedTraitFeedback) return;
+                  
+                  setIsSubmittingFeedback(true);
+                  try {
+                    // TODO: Replace with actual API endpoint
+                    const response = await fetch('http://localhost:3000/api/traits/feedback', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        traitName: selectedTraitFeedback.name,
+                        feedback: feedbackText,
+                        documentId: selectedTraitFeedback.documentId,
+                        type: selectedTraitFeedback.type
+                      })
+                    });
+
+                    if (!response.ok) {
+                      throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    alert('Feedback submitted successfully!');
+                    setSelectedTraitFeedback(null);
+                    setFeedbackText('');
+                  } catch (error) {
+                    console.error('Error submitting feedback:', error);
+                    alert(`Error submitting feedback: ${error.message}`);
+                  } finally {
+                    setIsSubmittingFeedback(false);
+                  }
+                }}
+                disabled={isSubmittingFeedback}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: isSubmittingFeedback ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  opacity: isSubmittingFeedback ? 0.6 : 1
+                }}
+              >
+                {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
