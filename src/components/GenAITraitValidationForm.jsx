@@ -2,6 +2,35 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './GenAITraitValidationForm.css';
 
 const GenAITraitValidationForm = () => {
+  // Possible traits for the API-driven possible traits table
+  const [possibleTraits, setPossibleTraits] = useState([]);
+  const [isLoadingTraits, setIsLoadingTraits] = useState(false);
+  const [traitsError, setTraitsError] = useState(null);
+
+  useEffect(() => {
+    const fetchTraits = async () => {
+      setIsLoadingTraits(true);
+      setTraitsError(null);
+      try {
+        const response = await fetch('http://localhost:3000/api/traits');
+        if (!response.ok) throw new Error(`Failed: ${response.status}`);
+        const result = await response.json();
+        if (result.success && Array.isArray(result.data)) {
+          setPossibleTraits(result.data);
+        } else {
+          setPossibleTraits([]);
+          setTraitsError('Could not load traits from API.');
+        }
+      } catch (err) {
+        setTraitsError('Error fetching traits: ' + err.message);
+        setPossibleTraits([]);
+      } finally {
+        setIsLoadingTraits(false);
+      }
+    };
+    fetchTraits();
+  }, []);
+
   const getInitialFormState = () => ({
     version: 'basic',
     project_input: '',
@@ -122,9 +151,9 @@ const GenAITraitValidationForm = () => {
       };
       
       // If version is context, also include project_input and concept_input
-      if (formData.version === 'context') {
-        apiData.project_input = formData.project_input.trim();
-        apiData.concept_input = formData.concept_input.trim();
+    if (formData.version === 'context') {
+      apiData.project_input = formData.project_input.trim();
+      apiData.concept_input = formData.concept_input.trim();
       }
     } else {
       // Original form submission
@@ -785,7 +814,8 @@ const GenAITraitValidationForm = () => {
               <th>Version</th>
               <th>Type</th>
               <th>Text</th>
-              <th>Traits</th>
+              <th>Possible Traits</th>
+<th>Traits</th>
             </tr>
           </thead>
           <tbody>
@@ -794,7 +824,16 @@ const GenAITraitValidationForm = () => {
                 <td className="type-cell">{row.version}</td>
                 <td className="type-cell">{row.type}</td>
                 <td className="text-cell">{row.text}</td>
-                <td className="traits-cell">
+                <td className="possible-traits-cell">
+  <div style={{fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
+    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
+      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
+        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+        : null}
+  </div>
+</td>
+<td className="traits-cell">
                   <div className="traits-list-inline">
                     {row.traits && row.traits.length > 0 ? (
                       row.traits.map((trait, index) => (
@@ -837,6 +876,16 @@ const GenAITraitValidationForm = () => {
                     ) : (
                       <span style={{ color: '#999', fontStyle: 'italic' }}>No traits</span>
                     )}
+                  </div>
+                </td>
+                {/* New Possible Traits column */}
+                <td className="possible-traits-cell">
+                  <div style={{fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
+                    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
+                      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+                      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
+                        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+                        : null}
                   </div>
                 </td>
               </tr>
@@ -962,9 +1011,8 @@ const GenAITraitValidationForm = () => {
           </div>
         </form>
 
-      </div>
+              </div>
 
-      {/* ... existing table-container section remains the same ... */}
       <div className="table-container">
         <div className="table-container-inner">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -986,8 +1034,8 @@ const GenAITraitValidationForm = () => {
               >
                 <span>{wsConnected ? '🟢' : '🔴'}</span>
                 {wsConnected ? 'Live' : 'Offline'}
-              </span>
-            </div>
+                        </span>
+                      </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={handleDownloadCSV}
@@ -1031,8 +1079,8 @@ const GenAITraitValidationForm = () => {
               >
                 {isDeleting ? 'Deleting...' : 'Delete All'}
               </button>
-            </div>
-          </div>
+                      </div>
+                    </div>
           {isLoadingTable && <p className="loading-text">Loading data...</p>}
           {tableError && (
             <div className="error-box">
@@ -1047,7 +1095,8 @@ const GenAITraitValidationForm = () => {
                     <th>Version</th>
                     <th>Type</th>
                     <th>Text</th>
-                    <th>Traits</th>
+                    <th>Possible Traits</th>
+<th>Traits</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1084,8 +1133,17 @@ const GenAITraitValidationForm = () => {
                         <td className="type-cell">{row.version}</td>
                         <td className="type-cell">{row.type}</td>
                         <td className="text-cell">{row.text}</td>
-                        <td className="traits-cell">
-                          <div className="traits-list-inline">
+                      <td className="possible-traits-cell">
+  <div style={{fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
+    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
+      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
+        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+        : null}
+  </div>
+</td>
+<td className="traits-cell">
+                        <div className="traits-list-inline">
                             {row.traits && row.traits.length > 0 ? (
                               row.traits.map((trait, index) => (
                                 <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
@@ -1141,14 +1199,14 @@ const GenAITraitValidationForm = () => {
                                       />
                                     )}
                                   </span>
-                                </div>
+                                      </div>
                               ))
                             ) : (
                               <span style={{ color: '#999', fontStyle: 'italic' }}>No traits</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                                  )}
+                        </div>
+                      </td>
+                    </tr>
                     ));
                   })()}
                 </tbody>
