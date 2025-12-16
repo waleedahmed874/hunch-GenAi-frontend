@@ -12,7 +12,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTraits(true);
       setTraitsError(null);
       try {
-        const response = await fetch('http://localhost:3000/api/traits');
+        const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits');
         if (!response.ok) throw new Error(`Failed: ${response.status}`);
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
@@ -44,16 +44,16 @@ const GenAITraitValidationForm = () => {
   const [isLoadingTable, setIsLoadingTable] = useState(false);
   const [tableError, setTableError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Trait feedback modal state
   const [selectedTraitFeedback, setSelectedTraitFeedback] = useState(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
-  
+
   // WebSocket states
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef(null);
-  
+
   // CSV upload states
   const [csvFile, setCsvFile] = useState(null);
   const [csvData, setCsvData] = useState([]);
@@ -76,12 +76,12 @@ const GenAITraitValidationForm = () => {
 
     setCsvFile(file);
     const reader = new FileReader();
-    
+
     reader.onload = (event) => {
       const text = event.target.result;
       parseCsv(text);
     };
-    
+
     reader.readAsText(file);
   };
 
@@ -97,7 +97,7 @@ const GenAITraitValidationForm = () => {
     // Validate required columns
     const requiredColumns = ['context_prompt', 'initial_reaction'];
     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-    
+
     if (missingColumns.length > 0) {
       alert(`Missing required columns: ${missingColumns.join(', ')}`);
       setCsvFile(null);
@@ -109,7 +109,7 @@ const GenAITraitValidationForm = () => {
     // Parse data rows
     const parsedData = [];
     const previewData = [];
-    
+
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim());
       if (values.length !== headers.length) continue;
@@ -120,7 +120,7 @@ const GenAITraitValidationForm = () => {
       });
 
       parsedData.push(row);
-      
+
       // Store first 5 rows for preview
       if (i <= 5) {
         previewData.push(row);
@@ -136,7 +136,7 @@ const GenAITraitValidationForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setApiResponse(null);
-    
+
     let apiData;
 
     // If CSV is selected, send CSV data as JSON array
@@ -149,11 +149,11 @@ const GenAITraitValidationForm = () => {
           uuid: row.uuid || ''
         }))
       };
-      
+
       // If version is context, also include project_input and concept_input
-    if (formData.version === 'context') {
-      apiData.project_input = formData.project_input.trim();
-      apiData.concept_input = formData.concept_input.trim();
+      if (formData.version === 'context') {
+        apiData.project_input = formData.project_input.trim();
+        apiData.concept_input = formData.concept_input.trim();
       }
     } else {
       // Original form submission
@@ -183,10 +183,10 @@ const GenAITraitValidationForm = () => {
 
       const result = await response.json();
       console.log('Form submission response:', result);
-      
+
       // Set API response to show in response table
       setApiResponse(result);
-      
+
       // If result has data array, also add to Traits Database table
       if (result.data && Array.isArray(result.data) && result.data.length > 0) {
         setTableData(prev => {
@@ -199,14 +199,14 @@ const GenAITraitValidationForm = () => {
     } catch (error) {
       console.error('Error submitting form:', error);
       let errorMessage = error.message;
-      
+
       if (error.message === 'Failed to fetch') {
         errorMessage = 'Failed to connect to the API server. Please ensure:\n\n' +
           '1. The backend server is running on http://localhost:8000\n' +
           '2. The server has CORS enabled to accept requests from http://localhost:3000\n' +
           '3. The /batch_classify endpoint is accessible';
       }
-      
+
       setApiResponse({ error: errorMessage });
     } finally {
       setIsSubmitting(false);
@@ -293,7 +293,7 @@ const GenAITraitValidationForm = () => {
 
     // Prepare CSV data
     const csvRows = [];
-    
+
     // CSV Headers
     const headers = [
       'Document ID',
@@ -337,9 +337,9 @@ const GenAITraitValidationForm = () => {
         const analysis = analyzeTraits(item, 'initial_reaction');
         const genAiRecords = item.initial_reaction.genAiRecords || [];
         if (analysis) {
-          const addedFeedback = getFeedbackString(genAiRecords, analysis.addedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
-          const removedFeedback = getFeedbackString(genAiRecords, analysis.removedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
-          const unchangedFeedback = getFeedbackString(genAiRecords, analysis.unchangedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
+          const addedFeedback = getFeedbackString(genAiRecords, analysis.addedTraits?.split(';').map(t => t.trim()).filter(Boolean));
+          const removedFeedback = getFeedbackString(genAiRecords, analysis.removedTraits?.split(';').map(t => t.trim()).filter(Boolean));
+          const unchangedFeedback = getFeedbackString(genAiRecords, analysis.unchangedTraits?.split(';').map(t => t.trim()).filter(Boolean));
           const row = [
             `"${item._id || ''}"`,
             `"${item.version || ''}"`,
@@ -366,9 +366,9 @@ const GenAITraitValidationForm = () => {
         const analysis = analyzeTraits(item, 'context_prompt');
         const genAiRecords = item.context_prompt.genAiRecords || [];
         if (analysis) {
-          const addedFeedback = getFeedbackString(genAiRecords, analysis.addedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
-          const removedFeedback = getFeedbackString(genAiRecords, analysis.removedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
-          const unchangedFeedback = getFeedbackString(genAiRecords, analysis.unchangedTraits?.split(';').map(t=>t.trim()).filter(Boolean));
+          const addedFeedback = getFeedbackString(genAiRecords, analysis.addedTraits?.split(';').map(t => t.trim()).filter(Boolean));
+          const removedFeedback = getFeedbackString(genAiRecords, analysis.removedTraits?.split(';').map(t => t.trim()).filter(Boolean));
+          const unchangedFeedback = getFeedbackString(genAiRecords, analysis.unchangedTraits?.split(';').map(t => t.trim()).filter(Boolean));
           const row = [
             `"${item._id || ''}"`,
             `"${item.version || ''}"`,
@@ -393,12 +393,12 @@ const GenAITraitValidationForm = () => {
 
     // Create CSV content
     const csvContent = csvRows.join('\n');
-    
+
     // Create blob and download
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `traits_export_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
@@ -414,7 +414,7 @@ const GenAITraitValidationForm = () => {
 
     setIsDeleting(true);
     setTableError(null);
-    
+
     try {
       const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db', {
         method: 'DELETE',
@@ -499,7 +499,7 @@ const GenAITraitValidationForm = () => {
             }
             return prev;
           });
-          
+
           // Also update response table if this document is part of current response
           if (apiResponse && apiResponse.data) {
             setApiResponse(prev => {
@@ -529,7 +529,7 @@ const GenAITraitValidationForm = () => {
               doc._id === data.documentId ? data.document : doc
             )
           );
-          
+
           // Also update response table if this document is part of current response
           if (apiResponse && apiResponse.data) {
             setApiResponse(prev => {
@@ -660,11 +660,11 @@ const GenAITraitValidationForm = () => {
     return genAiRecords.map(record => {
       const llmScore = record.llmScore || 0;
       const genAiScore = record.genAiSays?.score || 0;
-      
+
       let icon = '';
       let color = '';
       let displayName = record.traitTitle;
-      
+
       if (llmScore === 1 && genAiScore === 1) {
         // Black checkbox icon, black font
         icon = '✓';
@@ -705,7 +705,7 @@ const GenAITraitValidationForm = () => {
     if (!apiResponse) {
       return null;
     }
-    
+
     if (apiResponse.error) {
       return (
         <div className="error-box">
@@ -716,7 +716,7 @@ const GenAITraitValidationForm = () => {
 
     console.log('=== RENDERING RESPONSE TABLE ===');
     console.log('API Response:', apiResponse);
-    
+
     // Handle different response structures
     let dataArray = null;
     if (Array.isArray(apiResponse)) {
@@ -737,7 +737,7 @@ const GenAITraitValidationForm = () => {
         console.log(`Processing item ${idx}:`, item);
         console.log('Item has initial_reaction:', !!item.initial_reaction);
         console.log('Item has context_prompt:', !!item.context_prompt);
-        
+
         // Add Initial Reaction row
         if (item.initial_reaction) {
           console.log('Initial Reaction genAiRecords:', item.initial_reaction.genAiRecords);
@@ -751,7 +751,7 @@ const GenAITraitValidationForm = () => {
             traits: processedTraits
           });
         }
-        
+
         // Add Context Prompt row
         if (item.context_prompt) {
           console.log('Context Prompt genAiRecords:', item.context_prompt.genAiRecords);
@@ -789,10 +789,10 @@ const GenAITraitValidationForm = () => {
           </div>
           <details style={{ marginTop: '15px' }}>
             <summary style={{ cursor: 'pointer', color: '#666', fontWeight: 'bold' }}>View Full Response Structure (Click to expand)</summary>
-            <pre style={{ 
-              backgroundColor: '#f5f5f5', 
-              padding: '15px', 
-              borderRadius: '4px', 
+            <pre style={{
+              backgroundColor: '#f5f5f5',
+              padding: '15px',
+              borderRadius: '4px',
               overflow: 'auto',
               maxHeight: '400px',
               fontSize: '12px',
@@ -815,7 +815,8 @@ const GenAITraitValidationForm = () => {
               <th>Type</th>
               <th>Text</th>
               <th>Possible Traits</th>
-<th>Traits</th>
+              <th>LLM Traits</th>
+              <th>Gen AI Traits</th>
             </tr>
           </thead>
           <tbody>
@@ -825,18 +826,18 @@ const GenAITraitValidationForm = () => {
                 <td className="type-cell">{row.type}</td>
                 <td className="text-cell">{row.text}</td>
                 <td className="possible-traits-cell">
-  <div style={{fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
-    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
-      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
-        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-        : null}
-  </div>
-</td>
-<td className="traits-cell">
+                  <div style={{ fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
+                      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+                      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
+                        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+                        : null}
+                  </div>
+                </td>
+                <td className="traits-cell">
                   <div className="traits-list-inline">
-                    {row.traits && row.traits.length > 0 ? (
-                      row.traits.map((trait, index) => (
+                    {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
+                      row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
                         <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
                           <span
                             style={{
@@ -874,13 +875,58 @@ const GenAITraitValidationForm = () => {
                         </div>
                       ))
                     ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic' }}>No traits</span>
+                      <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
+                    )}
+                  </div>
+                </td>
+                <td className="traits-cell">
+                  <div className="traits-list-inline">
+                    {row.traits && row.traits.filter(t => t.genAiScore === 1).length > 0 ? (
+                      row.traits.filter(t => t.genAiScore === 1).map((trait, index) => (
+                        <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                          <span
+                            style={{
+                              color: trait.color,
+                              fontWeight: 'bold',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              border: `1px solid ${trait.color}`,
+                              backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
+                              position: 'relative'
+                            }}
+                            title={trait.rationale || trait.name}
+                          >
+                            <span style={{ fontSize: '14px' }}>{trait.icon}</span>
+                            <span className="trait-name">{trait.displayName}</span>
+                            {/* Black dot if feedback exists */}
+                            {trait.feedback && trait.feedback.trim() !== '' && (
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  marginLeft: '5px',
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#111',
+                                  verticalAlign: 'middle'
+                                }}
+                                title="Feedback added"
+                              />
+                            )}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
                     )}
                   </div>
                 </td>
                 {/* New Possible Traits column */}
                 <td className="possible-traits-cell">
-                  <div style={{fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
+                  <div style={{ fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
                       ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
                       : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
@@ -1011,7 +1057,7 @@ const GenAITraitValidationForm = () => {
           </div>
         </form>
 
-              </div>
+      </div>
 
       <div className="table-container">
         <div className="table-container-inner">
@@ -1034,8 +1080,8 @@ const GenAITraitValidationForm = () => {
               >
                 <span>{wsConnected ? '🟢' : '🔴'}</span>
                 {wsConnected ? 'Live' : 'Offline'}
-                        </span>
-                      </div>
+              </span>
+            </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={handleDownloadCSV}
@@ -1079,8 +1125,8 @@ const GenAITraitValidationForm = () => {
               >
                 {isDeleting ? 'Deleting...' : 'Delete All'}
               </button>
-                      </div>
-                    </div>
+            </div>
+          </div>
           {isLoadingTable && <p className="loading-text">Loading data...</p>}
           {tableError && (
             <div className="error-box">
@@ -1096,7 +1142,8 @@ const GenAITraitValidationForm = () => {
                     <th>Type</th>
                     <th>Text</th>
                     <th>Possible Traits</th>
-<th>Traits</th>
+                    <th>LLM Traits</th>
+                    <th>Gen AI Traits</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1127,25 +1174,25 @@ const GenAITraitValidationForm = () => {
                         });
                       }
                     });
-                    
+
                     return flattenedRows.map((row) => (
                       <tr key={row.id}>
                         <td className="type-cell">{row.version}</td>
                         <td className="type-cell">{row.type}</td>
                         <td className="text-cell">{row.text}</td>
-                      <td className="possible-traits-cell">
-  <div style={{fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
-    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
-      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
-        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-        : null}
-  </div>
-</td>
-<td className="traits-cell">
-                        <div className="traits-list-inline">
-                            {row.traits && row.traits.length > 0 ? (
-                              row.traits.map((trait, index) => (
+                        <td className="possible-traits-cell">
+                          <div style={{ fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
+                              ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+                              : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
+                                ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+                                : null}
+                          </div>
+                        </td>
+                        <td className="traits-cell">
+                          <div className="traits-list-inline">
+                            {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
+                              row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
                                 <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
                                   <span
                                     onClick={() => {
@@ -1199,14 +1246,78 @@ const GenAITraitValidationForm = () => {
                                       />
                                     )}
                                   </span>
-                                      </div>
+                                </div>
                               ))
                             ) : (
-                              <span style={{ color: '#999', fontStyle: 'italic' }}>No traits</span>
-                                  )}
-                        </div>
-                      </td>
-                    </tr>
+                              <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="traits-cell">
+                          <div className="traits-list-inline">
+                            {row.traits && row.traits.filter(t => t.genAiScore === 1).length > 0 ? (
+                              row.traits.filter(t => t.genAiScore === 1).map((trait, index) => (
+                                <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                                  <span
+                                    onClick={() => {
+                                      setSelectedTraitFeedback({
+                                        ...trait,
+                                        documentId: row.id.split('_')[0],
+                                        type: row.type
+                                      });
+                                      setFeedbackText(trait.feedback || '');
+                                    }}
+                                    style={{
+                                      color: trait.color,
+                                      fontWeight: 'bold',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      border: `1px solid ${trait.color}`,
+                                      backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s',
+                                      userSelect: 'none',
+                                      position: 'relative'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.transform = 'scale(1.05)';
+                                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.transform = 'scale(1)';
+                                      e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                    title="Click to view feedback"
+                                  >
+                                    <span style={{ fontSize: '14px' }}>{trait.icon}</span>
+                                    <span className="trait-name">{trait.displayName}</span>
+                                    {/* Black dot if feedback exists */}
+                                    {trait.feedback && trait.feedback.trim() !== '' && (
+                                      <span
+                                        style={{
+                                          display: 'inline-block',
+                                          marginLeft: '5px',
+                                          width: '8px',
+                                          height: '8px',
+                                          borderRadius: '50%',
+                                          backgroundColor: '#111',
+                                          verticalAlign: 'middle'
+                                        }}
+                                        title="Feedback added"
+                                      />
+                                    )}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     ));
                   })()}
                 </tbody>
@@ -1280,11 +1391,11 @@ const GenAITraitValidationForm = () => {
             <div style={{ marginBottom: '15px' }}>
               <strong style={{ color: '#666' }}>Status:</strong>
               <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ 
-                  padding: '4px 12px', 
+                <span style={{
+                  padding: '4px 12px',
                   borderRadius: '4px',
-                  backgroundColor: selectedTraitFeedback.color === 'black' ? '#f5f5f5' : 
-                                   selectedTraitFeedback.color === 'red' ? '#ffe6e6' : '#e6ffe6',
+                  backgroundColor: selectedTraitFeedback.color === 'black' ? '#f5f5f5' :
+                    selectedTraitFeedback.color === 'red' ? '#ffe6e6' : '#e6ffe6',
                   color: selectedTraitFeedback.color,
                   fontWeight: 'bold'
                 }}>
@@ -1293,7 +1404,7 @@ const GenAITraitValidationForm = () => {
                   {selectedTraitFeedback.llmScore === 0 && selectedTraitFeedback.genAiScore === 1 && '+ Added'}
                 </span>
                 <span style={{ color: '#666', fontSize: '14px' }}>
-                  (Hunch LLM: {selectedTraitFeedback.llmScore === 1 ? 'Yes' : 'No'}, 
+                  (Hunch LLM: {selectedTraitFeedback.llmScore === 1 ? 'Yes' : 'No'},
                   GenAI: {selectedTraitFeedback.genAiScore === 1 ? 'Yes' : 'No'})
                 </span>
               </div>
@@ -1309,18 +1420,18 @@ const GenAITraitValidationForm = () => {
             <div style={{ marginBottom: '15px' }}>
               <strong style={{ color: '#666' }}>Confidence:</strong>
               <div style={{ marginTop: '5px' }}>
-                <div style={{ 
-                  width: '100%', 
-                  height: '20px', 
-                  backgroundColor: '#e0e0e0', 
+                <div style={{
+                  width: '100%',
+                  height: '20px',
+                  backgroundColor: '#e0e0e0',
                   borderRadius: '10px',
                   overflow: 'hidden'
                 }}>
                   <div style={{
                     width: `${(selectedTraitFeedback.confidence || 0) * 100}%`,
                     height: '100%',
-                    backgroundColor: selectedTraitFeedback.confidence >= 0.8 ? '#28a745' : 
-                                     selectedTraitFeedback.confidence >= 0.6 ? '#ffc107' : '#dc3545',
+                    backgroundColor: selectedTraitFeedback.confidence >= 0.8 ? '#28a745' :
+                      selectedTraitFeedback.confidence >= 0.6 ? '#ffc107' : '#dc3545',
                     transition: 'width 0.3s'
                   }}></div>
                 </div>
@@ -1339,10 +1450,10 @@ const GenAITraitValidationForm = () => {
 
             <div style={{ marginBottom: '15px' }}>
               <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Rationale:</strong>
-              <p style={{ 
-                margin: '0', 
-                padding: '12px', 
-                backgroundColor: '#f9f9f9', 
+              <p style={{
+                margin: '0',
+                padding: '12px',
+                backgroundColor: '#f9f9f9',
                 borderRadius: '4px',
                 lineHeight: '1.6',
                 whiteSpace: 'pre-wrap',
@@ -1398,7 +1509,7 @@ const GenAITraitValidationForm = () => {
               <button
                 onClick={async () => {
                   if (!selectedTraitFeedback) return;
-                  
+
                   setIsSubmittingFeedback(true);
                   try {
                     // TODO: Replace with actual API endpoint
