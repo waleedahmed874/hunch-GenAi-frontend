@@ -808,13 +808,63 @@ const GenAITraitValidationForm = () => {
 
     return (
       <div className="table-wrapper" style={{ marginTop: '20px' }}>
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          backgroundColor: 'white',
+          padding: '10px 5px',
+          borderBottom: '1px solid #eee',
+          marginBottom: '10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          {/* Initial Reaction Traits */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <strong style={{ whiteSpace: 'nowrap', fontSize: '14px', color: '#333', minWidth: '120px' }}>Initial Reaction:</strong>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => (
+                <span key={`ir_${i}`} style={{
+                  background: '#f4f8fa',
+                  border: '1px solid #ececec',
+                  borderRadius: 5,
+                  padding: '2px 8px',
+                  fontSize: '12px',
+                  color: '#444'
+                }}>
+                  {t.title}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Context Prompt Traits */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <strong style={{ whiteSpace: 'nowrap', fontSize: '14px', color: '#333', minWidth: '120px' }}>Context Prompt:</strong>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => (
+                <span key={`cp_${i}`} style={{
+                  background: '#f4f8fa',
+                  border: '1px solid #ececec',
+                  borderRadius: 5,
+                  padding: '2px 8px',
+                  fontSize: '12px',
+                  color: '#444'
+                }}>
+                  {t.title}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
         <table className="traits-table">
           <thead>
             <tr>
               <th>Version</th>
               <th>Type</th>
               <th>Text</th>
-              <th>Possible Traits</th>
+
               <th>LLM Traits</th>
               <th>Gen AI Traits</th>
             </tr>
@@ -825,15 +875,7 @@ const GenAITraitValidationForm = () => {
                 <td className="type-cell">{row.version}</td>
                 <td className="type-cell">{row.type}</td>
                 <td className="text-cell">{row.text}</td>
-                <td className="possible-traits-cell">
-                  <div style={{ fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
-                      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-                      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
-                        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-                        : null}
-                  </div>
-                </td>
+
                 <td className="traits-cell">
                   <div className="traits-list-inline">
                     {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
@@ -897,7 +939,7 @@ const GenAITraitValidationForm = () => {
                               backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
                               position: 'relative'
                             }}
-                            title={trait.rationale || trait.name}
+                            title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
                           >
                             <span style={{ fontSize: '14px' }}>{trait.icon}</span>
                             <span className="trait-name">{trait.displayName}</span>
@@ -1135,13 +1177,63 @@ const GenAITraitValidationForm = () => {
           )}
           {!isLoadingTable && !tableError && tableData.length > 0 && (
             <div className="table-wrapper">
+              <div style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 100,
+                backgroundColor: 'white',
+                padding: '10px 5px',
+                borderBottom: '1px solid #eee',
+                marginBottom: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                {/* Initial Reaction Traits */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                  <strong style={{ whiteSpace: 'nowrap', fontSize: '14px', color: '#333', minWidth: '120px' }}>Initial Reaction:</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => (
+                      <span key={`ir_${i}`} style={{
+                        background: '#f4f8fa',
+                        border: '1px solid #ececec',
+                        borderRadius: 5,
+                        padding: '2px 8px',
+                        fontSize: '12px',
+                        color: '#444'
+                      }}>
+                        {t.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Context Prompt Traits */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                  <strong style={{ whiteSpace: 'nowrap', fontSize: '14px', color: '#333', minWidth: '120px' }}>Context Prompt:</strong>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => (
+                      <span key={`cp_${i}`} style={{
+                        background: '#f4f8fa',
+                        border: '1px solid #ececec',
+                        borderRadius: 5,
+                        padding: '2px 8px',
+                        fontSize: '12px',
+                        color: '#444'
+                      }}>
+                        {t.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
               <table className="traits-table">
                 <thead>
                   <tr>
                     <th>Version</th>
                     <th>Type</th>
                     <th>Text</th>
-                    <th>Possible Traits</th>
+
                     <th>LLM Traits</th>
                     <th>Gen AI Traits</th>
                   </tr>
@@ -1180,15 +1272,7 @@ const GenAITraitValidationForm = () => {
                         <td className="type-cell">{row.version}</td>
                         <td className="type-cell">{row.type}</td>
                         <td className="text-cell">{row.text}</td>
-                        <td className="possible-traits-cell">
-                          <div style={{ fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
-                              ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-                              : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
-                                ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-                                : null}
-                          </div>
-                        </td>
+
                         <td className="traits-cell">
                           <div className="traits-list-inline">
                             {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
@@ -1226,7 +1310,7 @@ const GenAITraitValidationForm = () => {
                                       e.currentTarget.style.transform = 'scale(1)';
                                       e.currentTarget.style.boxShadow = 'none';
                                     }}
-                                    title="Click to view feedback"
+                                    title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
                                   >
                                     <span style={{ fontSize: '14px' }}>{trait.icon}</span>
                                     <span className="trait-name">{trait.displayName}</span>
