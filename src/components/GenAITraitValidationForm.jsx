@@ -136,7 +136,7 @@ const GenAITraitValidationForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setApiResponse(null);
-
+    
     let apiData;
 
     // If CSV is selected, send CSV data as JSON array
@@ -151,9 +151,9 @@ const GenAITraitValidationForm = () => {
       };
 
       // If version is context, also include project_input and concept_input
-      if (formData.version === 'context') {
-        apiData.project_input = formData.project_input.trim();
-        apiData.concept_input = formData.concept_input.trim();
+    if (formData.version === 'context') {
+      apiData.project_input = formData.project_input.trim();
+      apiData.concept_input = formData.concept_input.trim();
       }
     } else {
       // Original form submission
@@ -199,14 +199,14 @@ const GenAITraitValidationForm = () => {
     } catch (error) {
       console.error('Error submitting form:', error);
       let errorMessage = error.message;
-
+      
       if (error.message === 'Failed to fetch') {
         errorMessage = 'Failed to connect to the API server. Please ensure:\n\n' +
           '1. The backend server is running on http://localhost:8000\n' +
           '2. The server has CORS enabled to accept requests from http://localhost:3000\n' +
           '3. The /batch_classify endpoint is accessible';
       }
-
+      
       setApiResponse({ error: errorMessage });
     } finally {
       setIsSubmitting(false);
@@ -858,46 +858,191 @@ const GenAITraitValidationForm = () => {
             </div>
           </div>
         </div>
-        <table className="traits-table">
-          <thead>
+        <table className="traits-table" style={{
+          width: '100%',
+          borderCollapse: 'separate',
+          borderSpacing: 0,
+          borderRadius: '12px',
+          overflow: 'hidden',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          background: '#fff'
+        }}>
+          <thead style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}>
             <tr>
-              <th>Version</th>
-              <th>Type</th>
-              <th>Text</th>
-
-              <th>LLM Traits</th>
-              <th>Gen AI Traits</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)'
+              }}>Version</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)',
+                width: '60px'
+              }}>No</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)'
+              }}>Type</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)',
+                minWidth: '600px'
+              }}>Text</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)'
+              }}>Hunch LLM Trait Assignments</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)'
+              }}>GenAI Validation</th>
             </tr>
           </thead>
           <tbody>
-            {tableRows.map((row) => (
-              <tr key={row.id}>
-                <td className="type-cell">{row.version}</td>
-                <td className="type-cell">{row.type}</td>
-                <td className="text-cell">{row.text}</td>
+            {tableRows.map((row, rowIndex) => (
+              <tr
+                key={row.id}
+                style={{
+                  animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
+                  transition: 'all 0.3s ease',
+                  background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
+                  e.currentTarget.style.transform = 'scale(1.01)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <td style={{
+                  padding: '14px 12px',
+                  borderBottom: '1px solid #e8ecf1',
+                  fontSize: '14px',
+                  color: '#495057',
+                  fontWeight: '500'
+                }}>{row.version}</td>
+                <td style={{
+                  padding: '14px 12px',
+                  borderBottom: '1px solid #e8ecf1',
+                  fontSize: '14px',
+                  color: '#495057',
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  width: '60px'
+                }}>{rowIndex + 1}</td>
+                <td style={{
+                  padding: '14px 12px',
+                  borderBottom: '1px solid #e8ecf1',
+                  fontSize: '14px',
+                  color: '#495057'
+                }}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    background: row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
+                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    color: '#fff',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    {row.type}
+                  </span>
+                </td>
+                <td style={{
+                  padding: '14px 12px',
+                  borderBottom: '1px solid #e8ecf1',
+                  fontSize: '14px',
+                  color: '#495057',
+                  minWidth: '600px',
+                  lineHeight: '1.5'
+                }}>{row.text}</td>
 
                 <td className="traits-cell">
                   <div className="traits-list-inline">
                     {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
                       row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
-                        <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                        <div key={index} className="trait-indicator-wrapper" style={{
+                          display: 'inline-block',
+                          marginRight: '8px',
+                          marginBottom: '6px',
+                          animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                        }}>
                           <span
                             style={{
-                              color: trait.color,
-                              fontWeight: 'bold',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                              border: `1px solid ${trait.color}`,
-                              backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
-                              position: 'relative'
+                              color: '#495057',
+                              fontWeight: '500',
+                              display: 'inline-block',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              border: '1px solid #e0e6ed',
+                              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                              position: 'relative',
+                              transition: 'all 0.3s ease',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                              cursor: 'default'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.12)';
+                              e.currentTarget.style.background = 'linear-gradient(135deg, #fff 0%, #f0f2f5 100%)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                              e.currentTarget.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
                             }}
                             title={trait.rationale || trait.name}
                           >
-                            <span style={{ fontSize: '14px' }}>{trait.icon}</span>
-                            <span className="trait-name">{trait.displayName}</span>
+                            <span className="trait-name">{trait.name}</span>
                             {/* Black dot if feedback exists */}
                             {trait.feedback && trait.feedback.trim() !== '' && (
                               <span
@@ -923,21 +1068,41 @@ const GenAITraitValidationForm = () => {
                 </td>
                 <td className="traits-cell">
                   <div className="traits-list-inline">
-                    {row.traits && row.traits.filter(t => t.genAiScore === 1).length > 0 ? (
-                      row.traits.filter(t => t.genAiScore === 1).map((trait, index) => (
-                        <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                    {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                      row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                        <div key={index} className="trait-indicator-wrapper" style={{
+                          display: 'inline-block',
+                          marginRight: '8px',
+                          marginBottom: '6px',
+                          animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                        }}>
                           <span
                             style={{
                               color: trait.color,
-                              fontWeight: 'bold',
+                              fontWeight: '600',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '5px',
-                              padding: '4px 8px',
-                              borderRadius: '4px',
-                              border: `1px solid ${trait.color}`,
-                              backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
-                              position: 'relative'
+                              gap: '6px',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              border: `2px solid ${trait.color}`,
+                              background: trait.color === 'black'
+                                ? 'linear-gradient(135deg, #f5f5f5 0%, #e9ecef 100%)'
+                                : trait.color === 'red'
+                                  ? 'linear-gradient(135deg, #ffe6e6 0%, #ffd6d6 100%)'
+                                  : 'linear-gradient(135deg, #e6ffe6 0%, #d4f4d4 100%)',
+                              position: 'relative',
+                              transition: 'all 0.3s ease',
+                              boxShadow: `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`,
+                              cursor: 'pointer'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-3px) scale(1.08)';
+                              e.currentTarget.style.boxShadow = `0 6px 12px ${trait.color === 'black' ? 'rgba(0,0,0,0.2)' : trait.color === 'red' ? 'rgba(255,0,0,0.25)' : 'rgba(0,255,0,0.25)'}`;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                              e.currentTarget.style.boxShadow = `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`;
                             }}
                             title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
                           >
@@ -1028,7 +1193,7 @@ const GenAITraitValidationForm = () => {
               <label>CSV Preview (showing first 5 rows)</label>
               <div className="csv-preview-table">
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                  <thead>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#fff', boxShadow: '0 2px 6px -2px rgba(0,0,0,0.10)' }}>
                     <tr style={{ backgroundColor: '#f5f5f5' }}>
                       {csvColumns.map((col, idx) => (
                         <th key={idx} style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'left' }}>
@@ -1099,7 +1264,7 @@ const GenAITraitValidationForm = () => {
           </div>
         </form>
 
-      </div>
+              </div>
 
       <div className="table-container">
         <div className="table-container-inner">
@@ -1122,8 +1287,8 @@ const GenAITraitValidationForm = () => {
               >
                 <span>{wsConnected ? '🟢' : '🔴'}</span>
                 {wsConnected ? 'Live' : 'Offline'}
-              </span>
-            </div>
+                        </span>
+                      </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={handleDownloadCSV}
@@ -1167,8 +1332,8 @@ const GenAITraitValidationForm = () => {
               >
                 {isDeleting ? 'Deleting...' : 'Delete All'}
               </button>
-            </div>
-          </div>
+                      </div>
+                    </div>
           {isLoadingTable && <p className="loading-text">Loading data...</p>}
           {tableError && (
             <div className="error-box">
@@ -1227,15 +1392,85 @@ const GenAITraitValidationForm = () => {
                   </div>
                 </div>
               </div>
-              <table className="traits-table">
-                <thead>
+              <table className="traits-table" style={{
+                width: '100%',
+                borderCollapse: 'separate',
+                borderSpacing: 0,
+                borderRadius: '12px',
+                overflow: 'hidden',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                background: '#fff'
+              }}>
+                <thead style={{
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 10,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}>
                   <tr>
-                    <th>Version</th>
-                    <th>Type</th>
-                    <th>Text</th>
-
-                    <th>LLM Traits</th>
-                    <th>Gen AI Traits</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)',
+                      width: '60px'
+                    }}>No</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    }}>Version</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    }}>Type</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)',
+                      minWidth: '600px'
+                    }}>Text</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    }}>Hunch LLM Trait Assignments</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    }}>GenAI Validation</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1267,17 +1502,87 @@ const GenAITraitValidationForm = () => {
                       }
                     });
 
-                    return flattenedRows.map((row) => (
-                      <tr key={row.id}>
-                        <td className="type-cell">{row.version}</td>
-                        <td className="type-cell">{row.type}</td>
-                        <td className="text-cell">{row.text}</td>
+                    return flattenedRows.map((row, rowIndex) => (
+                      <tr
+                        key={row.id}
+                        style={{
+                          animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
+                          transition: 'all 0.3s ease',
+                          background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
+                          e.currentTarget.style.transform = 'scale(1.01)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <td style={{
+                          padding: '14px 12px',
+                          borderBottom: '1px solid #e8ecf1',
+                          fontSize: '14px',
+                          color: '#495057',
+                          fontWeight: '600',
+                          textAlign: 'center',
+                          width: '60px'
+                        }}>{rowIndex + 1}</td>
+                        <td style={{
+                          padding: '14px 12px',
+                          borderBottom: '1px solid #e8ecf1',
+                          fontSize: '14px',
+                          color: '#495057',
+                          fontWeight: '500'
+                        }}>{row.version}</td>
+                        <td style={{
+                          padding: '14px 12px',
+                          borderBottom: '1px solid #e8ecf1',
+                          fontSize: '14px',
+                          color: '#495057'
+                        }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            background: row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
+                              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                              : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                            color: '#fff',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {row.type}
+                          </span>
+                        </td>
+                        <td style={{
+                          padding: '14px 12px',
+                          borderBottom: '1px solid #e8ecf1',
+                          fontSize: '14px',
+                          color: '#495057',
+                          minWidth: '600px',
+                          lineHeight: '1.5'
+                        }}>{row.text}</td>
 
-                        <td className="traits-cell">
-                          <div className="traits-list-inline">
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057'
+                      }}>
+                        <div className="traits-list-inline">
                             {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
                               row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
-                                <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
+                                <div key={index} className="trait-indicator-wrapper" style={{
+                                  display: 'inline-block',
+                                  marginRight: '8px',
+                                  marginBottom: '6px',
+                                  animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                                }}>
                                   <span
                                     onClick={() => {
                                       setSelectedTraitFeedback({
@@ -1288,30 +1593,109 @@ const GenAITraitValidationForm = () => {
                                       setFeedbackText(trait.feedback || '');
                                     }}
                                     style={{
-                                      color: trait.color,
-                                      fontWeight: 'bold',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      border: `1px solid ${trait.color}`,
-                                      backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
+                                      color: '#495057',
+                                      fontWeight: '500',
+                                      display: 'inline-block',
+                                      padding: '6px 12px',
+                                      borderRadius: '8px',
+                                      border: '1px solid #e0e6ed',
+                                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+                                      position: 'relative',
+                                      transition: 'all 0.3s ease',
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                                       cursor: 'pointer',
-                                      transition: 'all 0.2s',
-                                      userSelect: 'none',
-                                      position: 'relative'
+                                      userSelect: 'none'
                                     }}
                                     onMouseEnter={(e) => {
-                                      e.currentTarget.style.transform = 'scale(1.05)';
-                                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+                                      e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+                                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.12)';
+                                      e.currentTarget.style.background = 'linear-gradient(135deg, #fff 0%, #f0f2f5 100%)';
                                     }}
                                     onMouseLeave={(e) => {
-                                      e.currentTarget.style.transform = 'scale(1)';
-                                      e.currentTarget.style.boxShadow = 'none';
+                                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                                      e.currentTarget.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
                                     }}
-                                    title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
+                                    title={trait.rationale || trait.name}
                                   >
+                                    <span className="trait-name">{trait.name}</span>
+                                    {/* Black dot if feedback exists */}
+                                    {trait.feedback && trait.feedback.trim() !== '' && (
+                                      <span
+                                        style={{
+                                          display: 'inline-block',
+                                          marginLeft: '5px',
+                                          width: '8px',
+                                          height: '8px',
+                                          borderRadius: '50%',
+                                          backgroundColor: '#111',
+                                          verticalAlign: 'middle'
+                                        }}
+                                        title="Feedback added"
+                                      />
+                                    )}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
+                            )}
+                        </div>
+                      </td>
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057'
+                      }}>
+                        <div className="traits-list-inline">
+                          {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                            row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                              <div key={index} className="trait-indicator-wrapper" style={{
+                                display: 'inline-block',
+                                marginRight: '8px',
+                                marginBottom: '6px',
+                                animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                              }}>
+                                <span
+                                  onClick={() => {
+                                    setSelectedTraitFeedback({
+                                      ...trait,
+                                      documentId: row.id.split('_')[0],
+                                      type: row.type
+                                    });
+                                    setFeedbackText(trait.feedback || '');
+                                  }}
+                                  style={{
+                                    color: trait.color,
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '6px 12px',
+                                    borderRadius: '8px',
+                                    border: `2px solid ${trait.color}`,
+                                    background: trait.color === 'black'
+                                      ? 'linear-gradient(135deg, #f5f5f5 0%, #e9ecef 100%)'
+                                      : trait.color === 'red'
+                                        ? 'linear-gradient(135deg, #ffe6e6 0%, #ffd6d6 100%)'
+                                        : 'linear-gradient(135deg, #e6ffe6 0%, #d4f4d4 100%)',
+                                    position: 'relative',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`,
+                                    cursor: 'pointer',
+                                    userSelect: 'none'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-3px) scale(1.08)';
+                                    e.currentTarget.style.boxShadow = `0 6px 12px ${trait.color === 'black' ? 'rgba(0,0,0,0.2)' : trait.color === 'red' ? 'rgba(255,0,0,0.25)' : 'rgba(0,255,0,0.25)'}`;
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                    e.currentTarget.style.boxShadow = `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`;
+                                  }}
+                                  title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
+                                >
                                     <span style={{ fontSize: '14px' }}>{trait.icon}</span>
                                     <span className="trait-name">{trait.displayName}</span>
                                     {/* Black dot if feedback exists */}
@@ -1335,73 +1719,9 @@ const GenAITraitValidationForm = () => {
                             ) : (
                               <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
                             )}
-                          </div>
-                        </td>
-                        <td className="traits-cell">
-                          <div className="traits-list-inline">
-                            {row.traits && row.traits.filter(t => t.genAiScore === 1).length > 0 ? (
-                              row.traits.filter(t => t.genAiScore === 1).map((trait, index) => (
-                                <div key={index} className="trait-indicator-wrapper" style={{ display: 'inline-block', marginRight: '10px', marginBottom: '5px' }}>
-                                  <span
-                                    onClick={() => {
-                                      setSelectedTraitFeedback({
-                                        ...trait,
-                                        documentId: row.id.split('_')[0],
-                                        type: row.type
-                                      });
-                                      setFeedbackText(trait.feedback || '');
-                                    }}
-                                    style={{
-                                      color: trait.color,
-                                      fontWeight: 'bold',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      border: `1px solid ${trait.color}`,
-                                      backgroundColor: trait.color === 'black' ? '#f5f5f5' : trait.color === 'red' ? '#ffe6e6' : '#e6ffe6',
-                                      cursor: 'pointer',
-                                      transition: 'all 0.2s',
-                                      userSelect: 'none',
-                                      position: 'relative'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.transform = 'scale(1.05)';
-                                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.transform = 'scale(1)';
-                                      e.currentTarget.style.boxShadow = 'none';
-                                    }}
-                                    title="Click to view feedback"
-                                  >
-                                    <span style={{ fontSize: '14px' }}>{trait.icon}</span>
-                                    <span className="trait-name">{trait.displayName}</span>
-                                    {/* Black dot if feedback exists */}
-                                    {trait.feedback && trait.feedback.trim() !== '' && (
-                                      <span
-                                        style={{
-                                          display: 'inline-block',
-                                          marginLeft: '5px',
-                                          width: '8px',
-                                          height: '8px',
-                                          borderRadius: '50%',
-                                          backgroundColor: '#111',
-                                          verticalAlign: 'middle'
-                                        }}
-                                        title="Feedback added"
-                                      />
-                                    )}
-                                  </span>
-                                </div>
-                              ))
-                            ) : (
-                              <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                        </div>
+                      </td>
+                    </tr>
                     ));
                   })()}
                 </tbody>
