@@ -49,6 +49,8 @@ const GenAITraitValidationForm = () => {
   const [selectedTraitFeedback, setSelectedTraitFeedback] = useState(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [selectedRowForFeedback, setSelectedRowForFeedback] = useState(null);
+  const [selectedTraitFromList, setSelectedTraitFromList] = useState('');
 
   // WebSocket states
   const [wsConnected, setWsConnected] = useState(false);
@@ -136,7 +138,7 @@ const GenAITraitValidationForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setApiResponse(null);
-    
+
     let apiData;
 
     // If CSV is selected, send CSV data as JSON array
@@ -151,9 +153,9 @@ const GenAITraitValidationForm = () => {
       };
 
       // If version is context, also include project_input and concept_input
-    if (formData.version === 'context') {
-      apiData.project_input = formData.project_input.trim();
-      apiData.concept_input = formData.concept_input.trim();
+      if (formData.version === 'context') {
+        apiData.project_input = formData.project_input.trim();
+        apiData.concept_input = formData.concept_input.trim();
       }
     } else {
       // Original form submission
@@ -199,14 +201,14 @@ const GenAITraitValidationForm = () => {
     } catch (error) {
       console.error('Error submitting form:', error);
       let errorMessage = error.message;
-      
+
       if (error.message === 'Failed to fetch') {
         errorMessage = 'Failed to connect to the API server. Please ensure:\n\n' +
           '1. The backend server is running on http://localhost:8000\n' +
           '2. The server has CORS enabled to accept requests from http://localhost:3000\n' +
           '3. The /batch_classify endpoint is accessible';
       }
-      
+
       setApiResponse({ error: errorMessage });
     } finally {
       setIsSubmitting(false);
@@ -282,6 +284,12 @@ const GenAITraitValidationForm = () => {
       totalAdded: addedTraits.length,
       totalRemoved: removedTraits.length
     };
+  };
+
+  const handleRowClick = (row) => {
+    setSelectedRowForFeedback(row);
+    setSelectedTraitFromList('');
+    setFeedbackText('');
   };
 
   // Function to download data as CSV
@@ -943,7 +951,9 @@ const GenAITraitValidationForm = () => {
             {tableRows.map((row, rowIndex) => (
               <tr
                 key={row.id}
+                onClick={() => handleRowClick(row)}
                 style={{
+                  cursor: 'pointer',
                   animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
                   transition: 'all 0.3s ease',
                   background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
@@ -1264,7 +1274,7 @@ const GenAITraitValidationForm = () => {
           </div>
         </form>
 
-              </div>
+      </div>
 
       <div className="table-container">
         <div className="table-container-inner">
@@ -1287,8 +1297,8 @@ const GenAITraitValidationForm = () => {
               >
                 <span>{wsConnected ? '🟢' : '🔴'}</span>
                 {wsConnected ? 'Live' : 'Offline'}
-                        </span>
-                      </div>
+              </span>
+            </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={handleDownloadCSV}
@@ -1332,8 +1342,8 @@ const GenAITraitValidationForm = () => {
               >
                 {isDeleting ? 'Deleting...' : 'Delete All'}
               </button>
-                      </div>
-                    </div>
+            </div>
+          </div>
           {isLoadingTable && <p className="loading-text">Loading data...</p>}
           {tableError && (
             <div className="error-box">
@@ -1505,7 +1515,9 @@ const GenAITraitValidationForm = () => {
                     return flattenedRows.map((row, rowIndex) => (
                       <tr
                         key={row.id}
+                        onClick={() => handleRowClick(row)}
                         style={{
+                          cursor: 'pointer',
                           animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
                           transition: 'all 0.3s ease',
                           background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
@@ -1568,13 +1580,13 @@ const GenAITraitValidationForm = () => {
                           lineHeight: '1.5'
                         }}>{row.text}</td>
 
-                      <td style={{
-                        padding: '14px 12px',
-                        borderBottom: '1px solid #e8ecf1',
-                        fontSize: '14px',
-                        color: '#495057'
-                      }}>
-                        <div className="traits-list-inline">
+                        <td style={{
+                          padding: '14px 12px',
+                          borderBottom: '1px solid #e8ecf1',
+                          fontSize: '14px',
+                          color: '#495057'
+                        }}>
+                          <div className="traits-list-inline">
                             {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
                               row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
                                 <div key={index} className="trait-indicator-wrapper" style={{
@@ -1584,7 +1596,8 @@ const GenAITraitValidationForm = () => {
                                   animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
                                 }}>
                                   <span
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setSelectedTraitFeedback({
                                         ...trait,
                                         documentId: row.id.split('_')[0],
@@ -1640,62 +1653,63 @@ const GenAITraitValidationForm = () => {
                             ) : (
                               <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
                             )}
-                        </div>
-                      </td>
-                      <td style={{
-                        padding: '14px 12px',
-                        borderBottom: '1px solid #e8ecf1',
-                        fontSize: '14px',
-                        color: '#495057'
-                      }}>
-                        <div className="traits-list-inline">
-                          {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                            row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
-                              <div key={index} className="trait-indicator-wrapper" style={{
-                                display: 'inline-block',
-                                marginRight: '8px',
-                                marginBottom: '6px',
-                                animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                              }}>
-                                <span
-                                  onClick={() => {
-                                    setSelectedTraitFeedback({
-                                      ...trait,
-                                      documentId: row.id.split('_')[0],
-                                      type: row.type
-                                    });
-                                    setFeedbackText(trait.feedback || '');
-                                  }}
-                                  style={{
-                                    color: trait.color,
-                                    fontWeight: '600',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    padding: '6px 12px',
-                                    borderRadius: '8px',
-                                    border: `2px solid ${trait.color}`,
-                                    background: trait.color === 'black'
-                                      ? 'linear-gradient(135deg, #f5f5f5 0%, #e9ecef 100%)'
-                                      : trait.color === 'red'
-                                        ? 'linear-gradient(135deg, #ffe6e6 0%, #ffd6d6 100%)'
-                                        : 'linear-gradient(135deg, #e6ffe6 0%, #d4f4d4 100%)',
-                                    position: 'relative',
-                                    transition: 'all 0.3s ease',
-                                    boxShadow: `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`,
-                                    cursor: 'pointer',
-                                    userSelect: 'none'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-3px) scale(1.08)';
-                                    e.currentTarget.style.boxShadow = `0 6px 12px ${trait.color === 'black' ? 'rgba(0,0,0,0.2)' : trait.color === 'red' ? 'rgba(255,0,0,0.25)' : 'rgba(0,255,0,0.25)'}`;
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                    e.currentTarget.style.boxShadow = `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`;
-                                  }}
-                                  title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
-                                >
+                          </div>
+                        </td>
+                        <td style={{
+                          padding: '14px 12px',
+                          borderBottom: '1px solid #e8ecf1',
+                          fontSize: '14px',
+                          color: '#495057'
+                        }}>
+                          <div className="traits-list-inline">
+                            {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                              row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                                <div key={index} className="trait-indicator-wrapper" style={{
+                                  display: 'inline-block',
+                                  marginRight: '8px',
+                                  marginBottom: '6px',
+                                  animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                                }}>
+                                  <span
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedTraitFeedback({
+                                        ...trait,
+                                        documentId: row.id.split('_')[0],
+                                        type: row.type
+                                      });
+                                      setFeedbackText(trait.feedback || '');
+                                    }}
+                                    style={{
+                                      color: trait.color,
+                                      fontWeight: '600',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      padding: '6px 12px',
+                                      borderRadius: '8px',
+                                      border: `2px solid ${trait.color}`,
+                                      background: trait.color === 'black'
+                                        ? 'linear-gradient(135deg, #f5f5f5 0%, #e9ecef 100%)'
+                                        : trait.color === 'red'
+                                          ? 'linear-gradient(135deg, #ffe6e6 0%, #ffd6d6 100%)'
+                                          : 'linear-gradient(135deg, #e6ffe6 0%, #d4f4d4 100%)',
+                                      position: 'relative',
+                                      transition: 'all 0.3s ease',
+                                      boxShadow: `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`,
+                                      cursor: 'pointer',
+                                      userSelect: 'none'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.transform = 'translateY(-3px) scale(1.08)';
+                                      e.currentTarget.style.boxShadow = `0 6px 12px ${trait.color === 'black' ? 'rgba(0,0,0,0.2)' : trait.color === 'red' ? 'rgba(255,0,0,0.25)' : 'rgba(0,255,0,0.25)'}`;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                                      e.currentTarget.style.boxShadow = `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`;
+                                    }}
+                                    title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
+                                  >
                                     <span style={{ fontSize: '14px' }}>{trait.icon}</span>
                                     <span className="trait-name">{trait.displayName}</span>
                                     {/* Black dot if feedback exists */}
@@ -1719,9 +1733,9 @@ const GenAITraitValidationForm = () => {
                             ) : (
                               <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
                             )}
-                        </div>
-                      </td>
-                    </tr>
+                          </div>
+                        </td>
+                      </tr>
                     ));
                   })()}
                 </tbody>
@@ -1956,6 +1970,197 @@ const GenAITraitValidationForm = () => {
                   fontSize: '14px',
                   fontWeight: 'bold',
                   opacity: isSubmittingFeedback ? 0.6 : 1
+                }}
+              >
+                {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Row Click Feedback Modal */}
+      {selectedRowForFeedback && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+          onClick={() => setSelectedRowForFeedback(null)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              padding: '30px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0 }}>Add Trait Feedback</h2>
+              <button
+                onClick={() => setSelectedRowForFeedback(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666',
+                  padding: '0',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <strong style={{ display: 'block', marginBottom: '8px', color: '#333' }}>Text:</strong>
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '6px',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                color: '#495057',
+                maxHeight: '150px',
+                overflowY: 'auto'
+              }}>
+                {selectedRowForFeedback.text}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
+                Select Trait:
+              </label>
+              <select
+                value={selectedTraitFromList}
+                onChange={(e) => setSelectedTraitFromList(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="">-- Select a trait --</option>
+                {possibleTraits
+                  .filter(t => {
+                    const type = selectedRowForFeedback.type.toLowerCase();
+                    if (type.includes('initial')) return t.initialReactionEnabled;
+                    if (type.includes('context')) return t.contextPromptEnabled;
+                    return false;
+                  })
+                  .map((t, i) => (
+                    <option key={i} value={t.title}>{t.title}</option>
+                  ))
+                }
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
+                Feedback:
+              </label>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="Enter feedback for this trait..."
+                style={{
+                  width: '100%',
+                  minHeight: '100px',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={() => setSelectedRowForFeedback(null)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedTraitFromList) {
+                    alert('Please select a trait');
+                    return;
+                  }
+
+                  setIsSubmittingFeedback(true);
+                  try {
+                    const response = await fetch('http://localhost:3000/api/traits/store-feedback', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        traitName: selectedTraitFromList,
+                        feedback: feedbackText,
+                        documentId: selectedRowForFeedback.id.split('_')[0],
+                        type: selectedRowForFeedback.type
+                      })
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                    const result = await response.json();
+                    alert('Feedback submitted successfully!');
+                    setSelectedRowForFeedback(null);
+                    setFeedbackText('');
+                    setSelectedTraitFromList('');
+                  } catch (error) {
+                    console.error('Error submitting feedback:', error);
+                    alert(`Error: ${error.message}`);
+                  } finally {
+                    setIsSubmittingFeedback(false);
+                  }
+                }}
+                disabled={isSubmittingFeedback}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: isSubmittingFeedback ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  opacity: isSubmittingFeedback ? 0.7 : 1
                 }}
               >
                 {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
