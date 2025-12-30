@@ -2065,15 +2065,94 @@ const GenAITraitValidationForm = () => {
               
               <Select
                 isMulti
-                options={possibleTraits
-                  .filter(t => {
-                    const type = selectedRowForFeedback.type.toLowerCase();
-                    if (type.includes('initial')) return t.initialReactionEnabled;
-                    if (type.includes('context')) return t.contextPromptEnabled;
-                    return false;
-                  })
-                  .map(t => ({ value: t.title, label: t.title }))
-                }
+                options={(() => {
+                  // Define the custom order
+                  const traitOrder = [
+                    "Expressive",
+"Positivity",
+"Intuitive",
+"(INTUITIVE) Flavor Appeal",
+"(INTUITIVE) Good Brand",
+"(INTUITIVE) Ingredient Appeal",
+"(INTUITIVE) Makes Life Easier",
+"Emotive Delight",
+"(EMOTIVE DELIGHT) Brand Love",
+"(EMOTIVE DELIGHT) Enticing",
+"(EMOTIVE DELIGHT) Flavor Love",
+"(EMOTIVE DELIGHT) Ingredient Love",
+"(EMOTIVE DELIGHT) Makes Life Easier!",
+"Foresight",
+"(FORESIGHT) Expressed Intent",
+"(FORESIGHT) Enticing",
+"(FORESIGHT) On the Go",
+"(FORESIGHT-NICHE) Dietary Issues - Special Diets",
+"(FORESIGHT-NICHE) Gift",
+"(FORESIGHT-NICHE) Health Conditions",
+"(FORESIGHT-NICHE) Holiday", 
+"(FORESIGHT-NICHE) Kids",
+"(FORESIGHT-NICHE) Seasonal",
+"(FORESIGHT-NICHE) Social Gatherings",
+"(FORESIGHT-NICHE) Special Occasion - Event",
+"(FORESIGHT-NICHE) Travel",
+"New News",
+"(NEW NEWS) Eye Catching",
+"Surprise",
+"Niche (Initial)", 
+"Niche (Prompted)",  
+"Negativity",
+"(NEUTRALITY-NEGATIVITY) Too Much Work",
+"Fixable",
+"Skeptical",
+"(SKEPTICAL) Hopeful Skepticism",
+"(SKEPTICAL) Taste Skepticism",
+"Unclear",
+"Not For Me",
+"(NOT FOR ME) Brand",
+"(NOT FOR ME) Category",
+"(NOT FOR ME) Flavor",
+"(NOT FOR ME) Ingredient",
+"(NOT FOR ME) Outright Rejection",
+"Blah",
+"(BLAH) Lacks Distinction (Me Too)",
+"(BLAH) Old News",
+"Pointless",
+"(POINTLESS) Gimmick",
+"(POINTLESS) No Need",
+"Bust",
+"(BUST) Bad Idea",
+"(BUST) Emotive Disgust or Contempt",
+"Overpriced",
+"(OVERPRICED) Assumed Expensiveness",
+"(OVERPRICED) Explicit Price Sensitivity",
+"Neutrality", 
+"(NEUTRALITY-NEGATIVITY) Too Much Work",
+"Nonsense",
+                  ];
+
+                  // Filter traits based on type
+                  const filteredTraits = possibleTraits
+                    .filter(t => {
+                      const type = selectedRowForFeedback.type.toLowerCase();
+                      if (type.includes('initial')) return t.initialReactionEnabled;
+                      if (type.includes('context')) return t.contextPromptEnabled;
+                      return false;
+                    });
+
+                  // Sort traits according to the custom order
+                  const sortedTraits = filteredTraits.sort((a, b) => {
+                    const indexA = traitOrder.indexOf(a.title);
+                    const indexB = traitOrder.indexOf(b.title);
+                    
+                    // If trait not in order list, put it at the end
+                    if (indexA === -1 && indexB === -1) return 0;
+                    if (indexA === -1) return 1;
+                    if (indexB === -1) return -1;
+                    
+                    return indexA - indexB;
+                  });
+
+                  return sortedTraits.map(t => ({ value: t.title, label: t.title }));
+                })()}
                 value={selectedTraitsFromList.map(trait => ({ value: trait, label: trait }))}
                 onChange={(selected) => {
                   setSelectedTraitsFromList(selected ? selected.map(option => option.value) : []);
