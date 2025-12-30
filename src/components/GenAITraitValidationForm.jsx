@@ -323,19 +323,27 @@ const GenAITraitValidationForm = () => {
     ];
     csvRows.push(headers.join(','));
 
-    // Helper: get feedback joined for traits (array of trait names)
-    function getFeedbackString(genAiRecords, traitNames) {
-      if (!Array.isArray(traitNames)) return '';
-      return traitNames
-        .map(traitName => {
-          if (!traitName?.trim()) return '';
-          const rec = (genAiRecords || []).find(r => r.traitTitle === traitName.trim());
-          const feedback = rec && (rec.feedback || rec?.genAiSays?.feedback || '');
-          return feedback && feedback.trim() !== ''
-            ? `${traitName} (feedback: ${feedback.replace(/\"/g, '"')})`
-            : traitName;
+    // Helper: get feedback string from feedback array filtered by shouldExist
+    function getFeedbackByShouldExist(feedbackArray, shouldExistValue) {
+      if (!Array.isArray(feedbackArray)) return '';
+      return feedbackArray
+        .filter(fb => fb.shouldExist === shouldExistValue)
+        .map(fb => {
+          const feedbackText = fb.text ? fb.text.replace(/\"/g, '"') : '';
+          return `${fb.trait} (feedback: ${feedbackText}, shouldExist: ${fb.shouldExist})`;
         })
-        .filter(Boolean)
+        .join('; ');
+    }
+
+    // Helper: get feedback string for unchanged traits (no shouldExist or null)
+    function getUnchangedFeedback(feedbackArray) {
+      if (!Array.isArray(feedbackArray)) return '';
+      return feedbackArray
+        .filter(fb => fb.shouldExist === undefined || fb.shouldExist === null)
+        .map(fb => {
+          const feedbackText = fb.text ? fb.text.replace(/\"/g, '"') : '';
+          return `${fb.trait} (feedback: ${feedbackText})`;
+        })
         .join('; ');
     }
 
@@ -344,11 +352,11 @@ const GenAITraitValidationForm = () => {
       // Process Initial Reaction
       if (item.initial_reaction) {
         const analysis = analyzeTraits(item, 'initial_reaction');
-        const genAiRecords = item.initial_reaction.genAiRecords || [];
+        const feedbackArray = item.initial_reaction.feedback || [];
         if (analysis) {
-          const addedFeedback = getFeedbackString(genAiRecords, analysis.addedTraits?.split(';').map(t => t.trim()).filter(Boolean));
-          const removedFeedback = getFeedbackString(genAiRecords, analysis.removedTraits?.split(';').map(t => t.trim()).filter(Boolean));
-          const unchangedFeedback = getFeedbackString(genAiRecords, analysis.unchangedTraits?.split(';').map(t => t.trim()).filter(Boolean));
+          const addedFeedback = getFeedbackByShouldExist(feedbackArray, true);
+          const removedFeedback = getFeedbackByShouldExist(feedbackArray, false);
+          const unchangedFeedback = getUnchangedFeedback(feedbackArray);
           const row = [
             `"${item._id || ''}"`,
             `"${item.version || ''}"`,
@@ -373,11 +381,11 @@ const GenAITraitValidationForm = () => {
       // Process Context Prompt
       if (item.context_prompt) {
         const analysis = analyzeTraits(item, 'context_prompt');
-        const genAiRecords = item.context_prompt.genAiRecords || [];
+        const feedbackArray = item.context_prompt.feedback || [];
         if (analysis) {
-          const addedFeedback = getFeedbackString(genAiRecords, analysis.addedTraits?.split(';').map(t => t.trim()).filter(Boolean));
-          const removedFeedback = getFeedbackString(genAiRecords, analysis.removedTraits?.split(';').map(t => t.trim()).filter(Boolean));
-          const unchangedFeedback = getFeedbackString(genAiRecords, analysis.unchangedTraits?.split(';').map(t => t.trim()).filter(Boolean));
+          const addedFeedback = getFeedbackByShouldExist(feedbackArray, true);
+          const removedFeedback = getFeedbackByShouldExist(feedbackArray, false);
+          const unchangedFeedback = getUnchangedFeedback(feedbackArray);
           const row = [
             `"${item._id || ''}"`,
             `"${item.version || ''}"`,
