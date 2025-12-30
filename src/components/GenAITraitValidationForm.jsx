@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Select from 'react-select';
 import './GenAITraitValidationForm.css';
 
 const GenAITraitValidationForm = () => {
@@ -50,7 +51,7 @@ const GenAITraitValidationForm = () => {
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [selectedRowForFeedback, setSelectedRowForFeedback] = useState(null);
-  const [selectedTraitFromList, setSelectedTraitFromList] = useState('');
+  const [selectedTraitsFromList, setSelectedTraitsFromList] = useState([]);
   const [shouldExist, setShouldExist] = useState(true);
 
   // WebSocket states
@@ -2059,32 +2060,59 @@ const GenAITraitValidationForm = () => {
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
-                Select Trait:
+                Select Traits (Multiple):
               </label>
-              <select
-                value={selectedTraitFromList}
-                onChange={(e) => setSelectedTraitFromList(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  border: '1px solid #ddd',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="">-- Select a trait --</option>
-                {possibleTraits
+              
+              <Select
+                isMulti
+                options={possibleTraits
                   .filter(t => {
                     const type = selectedRowForFeedback.type.toLowerCase();
                     if (type.includes('initial')) return t.initialReactionEnabled;
                     if (type.includes('context')) return t.contextPromptEnabled;
                     return false;
                   })
-                  .map((t, i) => (
-                    <option key={i} value={t.title}>{t.title}</option>
-                  ))
+                  .map(t => ({ value: t.title, label: t.title }))
                 }
-              </select>
+                value={selectedTraitsFromList.map(trait => ({ value: trait, label: trait }))}
+                onChange={(selected) => {
+                  setSelectedTraitsFromList(selected ? selected.map(option => option.value) : []);
+                }}
+                placeholder="Search and select traits..."
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: '45px',
+                    borderColor: '#ddd',
+                    '&:hover': {
+                      borderColor: '#007bff'
+                    }
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: '#007bff',
+                  }),
+                  multiValueLabel: (base) => ({
+                    ...base,
+                    color: 'white',
+                    fontWeight: 'bold'
+                  }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    color: 'white',
+                    ':hover': {
+                      backgroundColor: '#0056b3',
+                      color: 'white',
+                    },
+                  }),
+                }}
+              />
+              
+              {selectedTraitsFromList.length > 0 && (
+                <div style={{ marginTop: '10px', fontSize: '13px', color: '#666' }}>
+                  Selected: {selectedTraitsFromList.length} trait(s)
+                </div>
+              )}
             </div>
 
             <div style={{ marginBottom: '20px' }}>
@@ -2149,7 +2177,12 @@ const GenAITraitValidationForm = () => {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
-                onClick={() => setSelectedRowForFeedback(null)}
+                onClick={() => {
+                  setSelectedRowForFeedback(null);
+                  setSelectedTraitsFromList([]);
+                  setFeedbackText('');
+                  setShouldExist(true);
+                }}
                 style={{
                   padding: '10px 20px',
                   backgroundColor: '#6c757d',
@@ -2165,24 +2198,29 @@ const GenAITraitValidationForm = () => {
               </button>
               <button
                 onClick={async () => {
-                  if (!selectedTraitFromList) {
-                    alert('Please select a trait');
+                  if (selectedTraitsFromList.length === 0) {
+                    alert('Please select at least one trait');
                     return;
                   }
 
                   setIsSubmittingFeedback(true);
                   try {
+                    // Create array of objects for each selected trait
+                    const feedbackArray = selectedTraitsFromList.map(traitName => ({
+                      traitName: traitName,
+                      feedback: feedbackText,
+                      documentId: selectedRowForFeedback.id.split('_')[0],
+                      type: selectedRowForFeedback.type,
+                      shouldExist: shouldExist
+                    }));
+
                     const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/store-feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
                       },
                       body: JSON.stringify({
-                        traitName: selectedTraitFromList,
-                        feedback: feedbackText,
-                        documentId: selectedRowForFeedback.id.split('_')[0],
-                        type: selectedRowForFeedback.type,
-                        shouldExist: shouldExist
+                        feedbackArray: feedbackArray
                       })
                     });
 
@@ -2192,7 +2230,7 @@ const GenAITraitValidationForm = () => {
                     alert('Feedback submitted successfully!');
                     setSelectedRowForFeedback(null);
                     setFeedbackText('');
-                    setSelectedTraitFromList('');
+                    setSelectedTraitsFromList([]);
                     setShouldExist(true);
                   } catch (error) {
                     console.error('Error submitting feedback:', error);
