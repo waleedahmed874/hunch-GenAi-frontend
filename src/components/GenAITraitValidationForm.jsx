@@ -51,6 +51,7 @@ const GenAITraitValidationForm = () => {
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [selectedRowForFeedback, setSelectedRowForFeedback] = useState(null);
   const [selectedTraitFromList, setSelectedTraitFromList] = useState('');
+  const [shouldExist, setShouldExist] = useState(true);
 
   // WebSocket states
   const [wsConnected, setWsConnected] = useState(false);
@@ -2080,6 +2081,46 @@ const GenAITraitValidationForm = () => {
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
+                Should Exist:
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <button
+                  onClick={() => setShouldExist(true)}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: shouldExist ? '#28a745' : '#e9ecef',
+                    color: shouldExist ? 'white' : '#495057',
+                    border: shouldExist ? '2px solid #28a745' : '2px solid #ced4da',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  True
+                </button>
+                <button
+                  onClick={() => setShouldExist(false)}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: !shouldExist ? '#dc3545' : '#e9ecef',
+                    color: !shouldExist ? 'white' : '#495057',
+                    border: !shouldExist ? '2px solid #dc3545' : '2px solid #ced4da',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  False
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
                 Feedback:
               </label>
               <textarea
@@ -2132,7 +2173,8 @@ const GenAITraitValidationForm = () => {
                         traitName: selectedTraitFromList,
                         feedback: feedbackText,
                         documentId: selectedRowForFeedback.id.split('_')[0],
-                        type: selectedRowForFeedback.type
+                        type: selectedRowForFeedback.type,
+                        shouldExist: shouldExist
                       })
                     });
 
@@ -2143,6 +2185,7 @@ const GenAITraitValidationForm = () => {
                     setSelectedRowForFeedback(null);
                     setFeedbackText('');
                     setSelectedTraitFromList('');
+                    setShouldExist(true);
                   } catch (error) {
                     console.error('Error submitting feedback:', error);
                     alert(`Error: ${error.message}`);
