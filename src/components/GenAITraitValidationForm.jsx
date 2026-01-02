@@ -99,7 +99,7 @@ const GenAITraitValidationForm = () => {
     setCsvColumns(headers);
 
     // Validate required columns
-    const requiredColumns = ['context_prompt', 'initial_reaction'];
+    const requiredColumns = ['Context Prompt', 'Initial Reaction','Hunch ID', 'Concept Name'];
     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
     if (missingColumns.length > 0) {
@@ -148,9 +148,10 @@ const GenAITraitValidationForm = () => {
       apiData = {
         version: formData.version,
         csv_data: csvData.map(row => ({
-          context_prompt: row.context_prompt || '',
-          initial_reaction: row.initial_reaction || '',
-          uuid: row.uuid || ''
+          context_prompt: row['Context Prompt'] || '',
+          initial_reaction: row['Initial Reaction'] || '',
+          hunch_id: row['Hunch ID'] || '',
+          concept_name: row['Concept Name']|| '',
         }))
       };
 
@@ -172,6 +173,7 @@ const GenAITraitValidationForm = () => {
     }
 
     console.log('Submitting form', apiData);
+
     try {
       const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/process', {
         method: 'POST',
@@ -752,18 +754,15 @@ const GenAITraitValidationForm = () => {
     const tableRows = [];
     if (dataArray && dataArray.length > 0) {
       dataArray.forEach((item, idx) => {
-        console.log(`Processing item ${idx}:`, item);
-        console.log('Item has initial_reaction:', !!item.initial_reaction);
-        console.log('Item has context_prompt:', !!item.context_prompt);
+      
 
         // Add Initial Reaction row
         if (item.initial_reaction) {
-          console.log('Initial Reaction genAiRecords:', item.initial_reaction.genAiRecords);
           const processedTraits = processTraits(item.initial_reaction.genAiRecords);
-          console.log('Processed Initial Reaction Traits:', processedTraits);
           tableRows.push({
             id: `${item._id || idx}_initial`,
             version: item.version || '',
+            concept_name: item.concept_name || '',
             type: item.initial_reaction.type || 'INITIAL_REACTION',
             text: item.initial_reaction.text || '',
             traits: processedTraits
@@ -772,12 +771,11 @@ const GenAITraitValidationForm = () => {
 
         // Add Context Prompt row
         if (item.context_prompt) {
-          console.log('Context Prompt genAiRecords:', item.context_prompt.genAiRecords);
           const processedTraits = processTraits(item.context_prompt.genAiRecords);
-          console.log('Processed Context Prompt Traits:', processedTraits);
           tableRows.push({
             id: `${item._id || idx}_context`,
             version: item.version || '',
+            concept_name: item.concept_name || '',
             type: item.context_prompt.type || 'CONTEXT_PROMPT',
             text: item.context_prompt.text || '',
             traits: processedTraits
@@ -893,37 +891,47 @@ const GenAITraitValidationForm = () => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
             <tr>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Version</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)',
-                width: '60px'
-              }}>No</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Type</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    }}>Version</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    }}>Concept Name</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)',
+                      width: '60px'
+                    }}>No</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    }}>Type</th>
               <th style={{
                 color: '#fff',
                 fontWeight: '600',
@@ -986,6 +994,13 @@ const GenAITraitValidationForm = () => {
                   color: '#495057',
                   fontWeight: '500'
                 }}>{row.version}</td>
+                <td style={{
+                  padding: '14px 12px',
+                  borderBottom: '1px solid #e8ecf1',
+                  fontSize: '14px',
+                  color: '#495057',
+                  fontWeight: '500'
+                }}>{row.concept_name || '-'}</td>
                 <td style={{
                   padding: '14px 12px',
                   borderBottom: '1px solid #e8ecf1',
@@ -1459,6 +1474,16 @@ const GenAITraitValidationForm = () => {
                       letterSpacing: '0.5px',
                       textTransform: 'uppercase',
                       borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    }}>Concept Name</th>
+                    <th style={{
+                      color: '#fff',
+                      fontWeight: '600',
+                      padding: '16px 12px',
+                      textAlign: 'left',
+                      fontSize: '13px',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      borderBottom: '2px solid rgba(255,255,255,0.2)'
                     }}>Type</th>
                     <th style={{
                       color: '#fff',
@@ -1504,6 +1529,7 @@ const GenAITraitValidationForm = () => {
                         flattenedRows.push({
                           id: `${item._id}_initial`,
                           version: item.version || '',
+                          concept_name: item.concept_name || '',
                           type: item.initial_reaction.type || 'INITIAL_REACTION',
                           text: item.initial_reaction.text || '',
                           traits: processedTraits
@@ -1515,6 +1541,7 @@ const GenAITraitValidationForm = () => {
                         flattenedRows.push({
                           id: `${item._id}_context`,
                           version: item.version || '',
+                          concept_name: item.concept_name || '',
                           type: item.context_prompt.type || 'CONTEXT_PROMPT',
                           text: item.context_prompt.text || '',
                           traits: processedTraits
@@ -1559,6 +1586,13 @@ const GenAITraitValidationForm = () => {
                           color: '#495057',
                           fontWeight: '500'
                         }}>{row.version}</td>
+                        <td style={{
+                          padding: '14px 12px',
+                          borderBottom: '1px solid #e8ecf1',
+                          fontSize: '14px',
+                          color: '#495057',
+                          fontWeight: '500'
+                        }}>{row.concept_name || '-'}</td>
                         <td style={{
                           padding: '14px 12px',
                           borderBottom: '1px solid #e8ecf1',
