@@ -13,7 +13,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTraits(true);
       setTraitsError(null);
       try {
-        const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits');
+        const response = await fetch('http://localhost:3000/api/traits');
         if (!response.ok) throw new Error(`Failed: ${response.status}`);
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
@@ -44,6 +44,7 @@ const GenAITraitValidationForm = () => {
   const [tableData, setTableData] = useState([]);
   const [isLoadingTable, setIsLoadingTable] = useState(false);
   const [tableError, setTableError] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Trait feedback modal state
@@ -99,7 +100,7 @@ const GenAITraitValidationForm = () => {
     setCsvColumns(headers);
 
     // Validate required columns
-    const requiredColumns = ['Context Prompt', 'Initial Reaction','Hunch ID', 'Concept Name'];
+    const requiredColumns = ['Context Prompt', 'Initial Reaction', 'Hunch ID', 'Concept Name'];
     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
     if (missingColumns.length > 0) {
@@ -151,7 +152,7 @@ const GenAITraitValidationForm = () => {
           context_prompt: row['Context Prompt'] || '',
           initial_reaction: row['Initial Reaction'] || '',
           hunch_id: row['Hunch ID'] || '',
-          concept_name: row['Concept Name']|| '',
+          concept_name: row['Concept Name'] || '',
         }))
       };
 
@@ -175,7 +176,7 @@ const GenAITraitValidationForm = () => {
     console.log('Submitting form', apiData);
 
     try {
-      const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/process', {
+      const response = await fetch('http://localhost:3000/api/traits/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,6 +193,9 @@ const GenAITraitValidationForm = () => {
 
       // Set API response to show in response table
       setApiResponse(result);
+
+      // Start showing the processing loader
+      setIsProcessing(true);
 
       // If result has data array, also add to Traits Database table
       if (result.data && Array.isArray(result.data) && result.data.length > 0) {
@@ -436,7 +440,7 @@ const GenAITraitValidationForm = () => {
     setTableError(null);
 
     try {
-      const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db', {
+      const response = await fetch('http://localhost:3000/api/traits/db', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -466,7 +470,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTable(true);
       setTableError(null);
       try {
-        const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db');
+        const response = await fetch('http://localhost:3000/api/traits/db');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -486,6 +490,29 @@ const GenAITraitValidationForm = () => {
 
     fetchTableData();
   }, []);
+
+  // Function to refetch table data
+  const refetchTableData = async () => {
+    setIsLoadingTable(true);
+    setTableError(null);
+    try {
+      const response = await fetch('http://localhost:3000/api/traits/db');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      if (result.success && result.data) {
+        setTableData(result.data);
+      } else {
+        setTableError('Failed to fetch data');
+      }
+    } catch (error) {
+      console.error('Error fetching table data:', error);
+      setTableError(error.message);
+    } finally {
+      setIsLoadingTable(false);
+    }
+  };
 
   // Handle WebSocket updates
   const handleWebSocketUpdate = useCallback((data) => {
@@ -580,6 +607,14 @@ const GenAITraitValidationForm = () => {
         }
         break;
 
+      case 'trait_prediction_complete':
+        console.log('🎉 Trait prediction complete:', data);
+        // Refetch the data from the database
+        refetchTableData();
+        // Hide the processing loader
+        setIsProcessing(false);
+        break;
+
       case 'task_queued':
         console.log('Task queued:', data);
         break;
@@ -591,7 +626,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
+    const wsUrl = 'ws://localhost:3000';
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
@@ -754,7 +789,7 @@ const GenAITraitValidationForm = () => {
     const tableRows = [];
     if (dataArray && dataArray.length > 0) {
       dataArray.forEach((item, idx) => {
-      
+
 
         // Add Initial Reaction row
         if (item.initial_reaction) {
@@ -891,47 +926,47 @@ const GenAITraitValidationForm = () => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
             <tr>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Version</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Concept Name</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)',
-                      width: '60px'
-                    }}>No</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Type</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)'
+              }}>Version</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)'
+              }}>Concept Name</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)',
+                width: '60px'
+              }}>No</th>
+              <th style={{
+                color: '#fff',
+                fontWeight: '600',
+                padding: '16px 12px',
+                textAlign: 'left',
+                fontSize: '13px',
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                borderBottom: '2px solid rgba(255,255,255,0.2)'
+              }}>Type</th>
               <th style={{
                 color: '#fff',
                 fontWeight: '600',
@@ -1186,7 +1221,61 @@ const GenAITraitValidationForm = () => {
 
   return (
     <>
-      <div className="form-container">
+      <div className="form-container" style={{ position: 'relative' }}>
+        {/* Processing Loader Overlay */}
+        {isProcessing && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            borderRadius: '12px',
+            backdropFilter: 'blur(2px)'
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              border: '6px solid rgba(243, 243, 243, 0.5)',
+              borderTop: '6px solid #667eea',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              marginBottom: '20px'
+            }} />
+            <h3 style={{
+              color: '#667eea',
+              fontSize: '20px',
+              fontWeight: '600',
+              marginBottom: '10px',
+              textAlign: 'center',
+              textShadow: '0 2px 4px rgba(255,255,255,0.8)'
+            }}>
+              Trait Assigning in Process
+            </h3>
+            <p style={{
+              color: '#333',
+              fontSize: '14px',
+              textAlign: 'center',
+              maxWidth: '400px',
+              fontWeight: '500',
+              textShadow: '0 1px 2px rgba(255,255,255,0.8)'
+            }}>
+              Please wait while we process the data in batches. The table will automatically refresh when complete.
+            </p>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        )}
         <h1>GenAI Trait Validation Form</h1>
         <form onSubmit={handleSubmit} onReset={handleReset}>
           <div className="form-group">
@@ -1302,7 +1391,10 @@ const GenAITraitValidationForm = () => {
       </div>
 
       <div className="table-container">
-        <div className="table-container-inner">
+        <div className="table-container-inner" style={{ position: 'relative' }}>
+          {/* Processing Loader Overlay */}
+
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
               <h2 style={{ margin: 0 }}>Traits Database</h2>
@@ -1975,7 +2067,7 @@ const GenAITraitValidationForm = () => {
                   setIsSubmittingFeedback(true);
                   try {
                     // TODO: Replace with actual API endpoint
-                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback', {
+                    const response = await fetch('http://localhost:3000/api/traits/feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -2096,71 +2188,71 @@ const GenAITraitValidationForm = () => {
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
                 Select Traits (Multiple):
               </label>
-              
+
               <Select
                 isMulti
                 options={(() => {
                   // Define the custom order
                   const traitOrder = [
                     "Expressive",
-"Positivity",
-"Intuitive",
-"(INTUITIVE) Flavor Appeal",
-"(INTUITIVE) Good Brand",
-"(INTUITIVE) Ingredient Appeal",
-"(INTUITIVE) Makes Life Easier",
-"Emotive Delight",
-"(EMOTIVE DELIGHT) Brand Love",
-"(EMOTIVE DELIGHT) Enticing",
-"(EMOTIVE DELIGHT) Flavor Love",
-"(EMOTIVE DELIGHT) Ingredient Love",
-"(EMOTIVE DELIGHT) Makes Life Easier!",
-"Foresight",
-"(FORESIGHT) Expressed Intent",
-"(FORESIGHT) Enticing",
-"(FORESIGHT) On the Go",
-"(FORESIGHT-NICHE) Dietary Issues - Special Diets",
-"(FORESIGHT-NICHE) Gift",
-"(FORESIGHT-NICHE) Health Conditions",
-"(FORESIGHT-NICHE) Holiday", 
-"(FORESIGHT-NICHE) Kids",
-"(FORESIGHT-NICHE) Seasonal",
-"(FORESIGHT-NICHE) Social Gatherings",
-"(FORESIGHT-NICHE) Special Occasion - Event",
-"(FORESIGHT-NICHE) Travel",
-"New News",
-"(NEW NEWS) Eye Catching",
-"Surprise",
-"Niche (Initial)", 
-"Niche (Prompted)",  
-"Negativity",
-"(NEUTRALITY-NEGATIVITY) Too Much Work",
-"Fixable",
-"Skeptical",
-"(SKEPTICAL) Hopeful Skepticism",
-"(SKEPTICAL) Taste Skepticism",
-"Unclear",
-"Not For Me",
-"(NOT FOR ME) Brand",
-"(NOT FOR ME) Category",
-"(NOT FOR ME) Flavor",
-"(NOT FOR ME) Ingredient",
-"(NOT FOR ME) Outright Rejection",
-"Blah",
-"(BLAH) Lacks Distinction (Me Too)",
-"(BLAH) Old News",
-"Pointless",
-"(POINTLESS) Gimmick",
-"(POINTLESS) No Need",
-"Bust",
-"(BUST) Bad Idea",
-"(BUST) Emotive Disgust or Contempt",
-"Overpriced",
-"(OVERPRICED) Assumed Expensiveness",
-"(OVERPRICED) Explicit Price Sensitivity",
-"Neutrality", 
-"(NEUTRALITY-NEGATIVITY) Too Much Work",
-"Nonsense",
+                    "Positivity",
+                    "Intuitive",
+                    "(INTUITIVE) Flavor Appeal",
+                    "(INTUITIVE) Good Brand",
+                    "(INTUITIVE) Ingredient Appeal",
+                    "(INTUITIVE) Makes Life Easier",
+                    "Emotive Delight",
+                    "(EMOTIVE DELIGHT) Brand Love",
+                    "(EMOTIVE DELIGHT) Enticing",
+                    "(EMOTIVE DELIGHT) Flavor Love",
+                    "(EMOTIVE DELIGHT) Ingredient Love",
+                    "(EMOTIVE DELIGHT) Makes Life Easier!",
+                    "Foresight",
+                    "(FORESIGHT) Expressed Intent",
+                    "(FORESIGHT) Enticing",
+                    "(FORESIGHT) On the Go",
+                    "(FORESIGHT-NICHE) Dietary Issues - Special Diets",
+                    "(FORESIGHT-NICHE) Gift",
+                    "(FORESIGHT-NICHE) Health Conditions",
+                    "(FORESIGHT-NICHE) Holiday",
+                    "(FORESIGHT-NICHE) Kids",
+                    "(FORESIGHT-NICHE) Seasonal",
+                    "(FORESIGHT-NICHE) Social Gatherings",
+                    "(FORESIGHT-NICHE) Special Occasion - Event",
+                    "(FORESIGHT-NICHE) Travel",
+                    "New News",
+                    "(NEW NEWS) Eye Catching",
+                    "Surprise",
+                    "Niche (Initial)",
+                    "Niche (Prompted)",
+                    "Negativity",
+                    "(NEUTRALITY-NEGATIVITY) Too Much Work",
+                    "Fixable",
+                    "Skeptical",
+                    "(SKEPTICAL) Hopeful Skepticism",
+                    "(SKEPTICAL) Taste Skepticism",
+                    "Unclear",
+                    "Not For Me",
+                    "(NOT FOR ME) Brand",
+                    "(NOT FOR ME) Category",
+                    "(NOT FOR ME) Flavor",
+                    "(NOT FOR ME) Ingredient",
+                    "(NOT FOR ME) Outright Rejection",
+                    "Blah",
+                    "(BLAH) Lacks Distinction (Me Too)",
+                    "(BLAH) Old News",
+                    "Pointless",
+                    "(POINTLESS) Gimmick",
+                    "(POINTLESS) No Need",
+                    "Bust",
+                    "(BUST) Bad Idea",
+                    "(BUST) Emotive Disgust or Contempt",
+                    "Overpriced",
+                    "(OVERPRICED) Assumed Expensiveness",
+                    "(OVERPRICED) Explicit Price Sensitivity",
+                    "Neutrality",
+                    "(NEUTRALITY-NEGATIVITY) Too Much Work",
+                    "Nonsense",
                   ];
 
                   // Filter traits based on type
@@ -2176,12 +2268,12 @@ const GenAITraitValidationForm = () => {
                   const sortedTraits = filteredTraits.sort((a, b) => {
                     const indexA = traitOrder.indexOf(a.title);
                     const indexB = traitOrder.indexOf(b.title);
-                    
+
                     // If trait not in order list, put it at the end
                     if (indexA === -1 && indexB === -1) return 0;
                     if (indexA === -1) return 1;
                     if (indexB === -1) return -1;
-                    
+
                     return indexA - indexB;
                   });
 
@@ -2220,7 +2312,7 @@ const GenAITraitValidationForm = () => {
                   }),
                 }}
               />
-              
+
               {selectedTraitsFromList.length > 0 && (
                 <div style={{ marginTop: '10px', fontSize: '13px', color: '#666' }}>
                   Selected: {selectedTraitsFromList.length} trait(s)
@@ -2327,7 +2419,7 @@ const GenAITraitValidationForm = () => {
                       shouldExist: shouldExist
                     }));
 
-                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/store-feedback', {
+                    const response = await fetch('http://localhost:3000/api/traits/store-feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
