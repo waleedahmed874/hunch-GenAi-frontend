@@ -44,7 +44,6 @@ const GenAITraitValidationForm = () => {
   const [tableData, setTableData] = useState([]);
   const [isLoadingTable, setIsLoadingTable] = useState(false);
   const [tableError, setTableError] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Trait feedback modal state
@@ -100,7 +99,7 @@ const GenAITraitValidationForm = () => {
     setCsvColumns(headers);
 
     // Validate required columns
-    const requiredColumns = ['Context Prompt', 'Initial Reaction', 'Hunch ID', 'Concept Name'];
+    const requiredColumns = ['Context Prompt', 'Initial Reaction','Hunch ID', 'Concept Name'];
     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
     if (missingColumns.length > 0) {
@@ -152,7 +151,7 @@ const GenAITraitValidationForm = () => {
           context_prompt: row['Context Prompt'] || '',
           initial_reaction: row['Initial Reaction'] || '',
           hunch_id: row['Hunch ID'] || '',
-          concept_name: row['Concept Name'] || '',
+          concept_name: row['Concept Name']|| '',
         }))
       };
 
@@ -193,9 +192,6 @@ const GenAITraitValidationForm = () => {
 
       // Set API response to show in response table
       setApiResponse(result);
-
-      // Start showing the processing loader
-      setIsProcessing(true);
 
       // If result has data array, also add to Traits Database table
       if (result.data && Array.isArray(result.data) && result.data.length > 0) {
@@ -491,29 +487,6 @@ const GenAITraitValidationForm = () => {
     fetchTableData();
   }, []);
 
-  // Function to refetch table data
-  const refetchTableData = async () => {
-    setIsLoadingTable(true);
-    setTableError(null);
-    try {
-      const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
-      if (result.success && result.data) {
-        setTableData(result.data);
-      } else {
-        setTableError('Failed to fetch data');
-      }
-    } catch (error) {
-      console.error('Error fetching table data:', error);
-      setTableError(error.message);
-    } finally {
-      setIsLoadingTable(false);
-    }
-  };
-
   // Handle WebSocket updates
   const handleWebSocketUpdate = useCallback((data) => {
     switch (data.type) {
@@ -605,14 +578,6 @@ const GenAITraitValidationForm = () => {
             savedDocuments: data.savedDocuments
           }));
         }
-        break;
-
-      case 'trait_prediction_complete':
-        console.log('🎉 Trait prediction complete:', data);
-        // Refetch the data from the database
-        refetchTableData();
-        // Hide the processing loader
-        setIsProcessing(false);
         break;
 
       case 'task_queued':
@@ -925,132 +890,132 @@ const GenAITraitValidationForm = () => {
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
-            <tr>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Version</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Concept Name</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)',
-                width: '60px'
-              }}>No</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Type</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)',
-                minWidth: '600px'
-              }}>Text</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Hunch LLM Trait Assignments</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>GenAI Validation</th>
-            </tr>
+          <tr>
+            <th style={{
+              color: '#fff',
+              fontWeight: '600',
+              padding: '16px 12px',
+              textAlign: 'left',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              borderBottom: '2px solid rgba(255,255,255,0.2)'
+            }}>Version</th>
+            <th style={{
+              color: '#fff',
+              fontWeight: '600',
+              padding: '16px 12px',
+              textAlign: 'left',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              borderBottom: '2px solid rgba(255,255,255,0.2)'
+            }}>Concept Name</th>
+            <th style={{
+              color: '#fff',
+              fontWeight: '600',
+              padding: '16px 12px',
+              textAlign: 'left',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              borderBottom: '2px solid rgba(255,255,255,0.2)',
+              width: '60px'
+            }}>No</th>
+            <th style={{
+              color: '#fff',
+              fontWeight: '600',
+              padding: '16px 12px',
+              textAlign: 'left',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              borderBottom: '2px solid rgba(255,255,255,0.2)'
+            }}>Type</th>
+            <th style={{
+              color: '#fff',
+              fontWeight: '600',
+              padding: '16px 12px',
+              textAlign: 'left',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              borderBottom: '2px solid rgba(255,255,255,0.2)',
+              minWidth: '600px'
+            }}>Text</th>
+            <th style={{
+              color: '#fff',
+              fontWeight: '600',
+              padding: '16px 12px',
+              textAlign: 'left',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              borderBottom: '2px solid rgba(255,255,255,0.2)'
+            }}>Hunch LLM Trait Assignments</th>
+            <th style={{
+              color: '#fff',
+              fontWeight: '600',
+              padding: '16px 12px',
+              textAlign: 'left',
+              fontSize: '13px',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              borderBottom: '2px solid rgba(255,255,255,0.2)'
+            }}>GenAI Validation</th>
+          </tr>
           </thead>
           <tbody>
-            {tableRows.map((row, rowIndex) => (
-              <tr
-                key={row.id}
-                onClick={() => handleRowClick(row)}
-                style={{
-                  cursor: 'pointer',
-                  animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
-                  transition: 'all 0.3s ease',
-                  background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
-                  e.currentTarget.style.transform = 'scale(1.01)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057',
-                  fontWeight: '500'
-                }}>{row.version}</td>
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057',
-                  fontWeight: '500'
-                }}>{row.concept_name || '-'}</td>
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057',
-                  fontWeight: '600',
-                  textAlign: 'center',
-                  width: '60px'
-                }}>{rowIndex + 1}</td>
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057'
-                }}>
+          {tableRows.map((row, rowIndex) => (
+            <tr
+              key={row.id}
+              onClick={() => handleRowClick(row)}
+              style={{
+                cursor: 'pointer',
+                animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
+                transition: 'all 0.3s ease',
+                background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
+                e.currentTarget.style.transform = 'scale(1.01)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <td style={{
+                padding: '14px 12px',
+                borderBottom: '1px solid #e8ecf1',
+                fontSize: '14px',
+                color: '#495057',
+                fontWeight: '500'
+              }}>{row.version}</td>
+              <td style={{
+                padding: '14px 12px',
+                borderBottom: '1px solid #e8ecf1',
+                fontSize: '14px',
+                color: '#495057',
+                fontWeight: '500'
+              }}>{row.concept_name || '-'}</td>
+              <td style={{
+                padding: '14px 12px',
+                borderBottom: '1px solid #e8ecf1',
+                fontSize: '14px',
+                color: '#495057',
+                fontWeight: '600',
+                textAlign: 'center',
+                width: '60px'
+              }}>{rowIndex + 1}</td>
+              <td style={{
+                padding: '14px 12px',
+                borderBottom: '1px solid #e8ecf1',
+                fontSize: '14px',
+                color: '#495057'
+              }}>
                   <span style={{
                     display: 'inline-block',
                     padding: '4px 10px',
@@ -1066,26 +1031,26 @@ const GenAITraitValidationForm = () => {
                   }}>
                     {row.type}
                   </span>
-                </td>
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057',
-                  minWidth: '600px',
-                  lineHeight: '1.5'
-                }}>{row.text}</td>
+              </td>
+              <td style={{
+                padding: '14px 12px',
+                borderBottom: '1px solid #e8ecf1',
+                fontSize: '14px',
+                color: '#495057',
+                minWidth: '600px',
+                lineHeight: '1.5'
+              }}>{row.text}</td>
 
-                <td className="traits-cell">
-                  <div className="traits-list-inline">
-                    {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
-                      row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
-                        <div key={index} className="trait-indicator-wrapper" style={{
-                          display: 'inline-block',
-                          marginRight: '8px',
-                          marginBottom: '6px',
-                          animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                        }}>
+              <td className="traits-cell">
+                <div className="traits-list-inline">
+                  {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
+                    row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
+                      <div key={index} className="trait-indicator-wrapper" style={{
+                        display: 'inline-block',
+                        marginRight: '8px',
+                        marginBottom: '6px',
+                        animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                      }}>
                           <span
                             style={{
                               color: '#495057',
@@ -1129,23 +1094,23 @@ const GenAITraitValidationForm = () => {
                               />
                             )}
                           </span>
-                        </div>
-                      ))
-                    ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                    )}
-                  </div>
-                </td>
-                <td className="traits-cell">
-                  <div className="traits-list-inline">
-                    {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                      row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
-                        <div key={index} className="trait-indicator-wrapper" style={{
-                          display: 'inline-block',
-                          marginRight: '8px',
-                          marginBottom: '6px',
-                          animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                        }}>
+                      </div>
+                    ))
+                  ) : (
+                    <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
+                  )}
+                </div>
+              </td>
+              <td className="traits-cell">
+                <div className="traits-list-inline">
+                  {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                    row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                      <div key={index} className="trait-indicator-wrapper" style={{
+                        display: 'inline-block',
+                        marginRight: '8px',
+                        marginBottom: '6px',
+                        animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                      }}>
                           <span
                             style={{
                               color: trait.color,
@@ -1194,25 +1159,25 @@ const GenAITraitValidationForm = () => {
                               />
                             )}
                           </span>
-                        </div>
-                      ))
-                    ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                    )}
-                  </div>
-                </td>
-                {/* New Possible Traits column */}
-                <td className="possible-traits-cell">
-                  <div style={{ fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
-                      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-                      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
-                        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-                        : null}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      </div>
+                    ))
+                  ) : (
+                    <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
+                  )}
+                </div>
+              </td>
+              {/* New Possible Traits column */}
+              <td className="possible-traits-cell">
+                <div style={{ fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
+                    ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+                    : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
+                      ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
+                      : null}
+                </div>
+              </td>
+            </tr>
+          ))}
           </tbody>
         </table>
       </div>
@@ -1221,61 +1186,7 @@ const GenAITraitValidationForm = () => {
 
   return (
     <>
-      <div className="form-container" style={{ position: 'relative' }}>
-        {/* Processing Loader Overlay */}
-        {isProcessing && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.5)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            borderRadius: '12px',
-            backdropFilter: 'blur(2px)'
-          }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              border: '6px solid rgba(243, 243, 243, 0.5)',
-              borderTop: '6px solid #667eea',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              marginBottom: '20px'
-            }} />
-            <h3 style={{
-              color: '#667eea',
-              fontSize: '20px',
-              fontWeight: '600',
-              marginBottom: '10px',
-              textAlign: 'center',
-              textShadow: '0 2px 4px rgba(255,255,255,0.8)'
-            }}>
-              Trait Assigning in Process
-            </h3>
-            <p style={{
-              color: '#333',
-              fontSize: '14px',
-              textAlign: 'center',
-              maxWidth: '400px',
-              fontWeight: '500',
-              textShadow: '0 1px 2px rgba(255,255,255,0.8)'
-            }}>
-              Please wait while we process the data in batches. The table will automatically refresh when complete.
-            </p>
-            <style>{`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
-          </div>
-        )}
+      <div className="form-container">
         <h1>GenAI Trait Validation Form</h1>
         <form onSubmit={handleSubmit} onReset={handleReset}>
           <div className="form-group">
@@ -1318,24 +1229,24 @@ const GenAITraitValidationForm = () => {
               <div className="csv-preview-table">
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#fff', boxShadow: '0 2px 6px -2px rgba(0,0,0,0.10)' }}>
-                    <tr style={{ backgroundColor: '#f5f5f5' }}>
-                      {csvColumns.map((col, idx) => (
-                        <th key={idx} style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'left' }}>
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
+                  <tr style={{ backgroundColor: '#f5f5f5' }}>
+                    {csvColumns.map((col, idx) => (
+                      <th key={idx} style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'left' }}>
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
                   </thead>
                   <tbody>
-                    {csvPreview.map((row, rowIdx) => (
-                      <tr key={rowIdx}>
-                        {csvColumns.map((col, colIdx) => (
-                          <td key={colIdx} style={{ padding: '8px', border: '1px solid #ddd' }}>
-                            {row[col] || '-'}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
+                  {csvPreview.map((row, rowIdx) => (
+                    <tr key={rowIdx}>
+                      {csvColumns.map((col, colIdx) => (
+                        <td key={colIdx} style={{ padding: '8px', border: '1px solid #ddd' }}>
+                          {row[col] || '-'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
                   </tbody>
                 </table>
                 <p style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
@@ -1391,10 +1302,7 @@ const GenAITraitValidationForm = () => {
       </div>
 
       <div className="table-container">
-        <div className="table-container-inner" style={{ position: 'relative' }}>
-          {/* Processing Loader Overlay */}
-
-
+        <div className="table-container-inner">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
               <h2 style={{ margin: 0 }}>Traits Database</h2>
@@ -1535,162 +1443,162 @@ const GenAITraitValidationForm = () => {
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                 }}>
-                  <tr>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)',
-                      width: '60px'
-                    }}>No</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Version</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Concept Name</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Type</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)',
-                      minWidth: '600px'
-                    }}>Text</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Hunch LLM Trait Assignments</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>GenAI Validation</th>
-                  </tr>
+                <tr>
+                  <th style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    padding: '16px 12px',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    borderBottom: '2px solid rgba(255,255,255,0.2)',
+                    width: '60px'
+                  }}>No</th>
+                  <th style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    padding: '16px 12px',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    borderBottom: '2px solid rgba(255,255,255,0.2)'
+                  }}>Version</th>
+                  <th style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    padding: '16px 12px',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    borderBottom: '2px solid rgba(255,255,255,0.2)'
+                  }}>Concept Name</th>
+                  <th style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    padding: '16px 12px',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    borderBottom: '2px solid rgba(255,255,255,0.2)'
+                  }}>Type</th>
+                  <th style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    padding: '16px 12px',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    borderBottom: '2px solid rgba(255,255,255,0.2)',
+                    minWidth: '600px'
+                  }}>Text</th>
+                  <th style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    padding: '16px 12px',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    borderBottom: '2px solid rgba(255,255,255,0.2)'
+                  }}>Hunch LLM Trait Assignments</th>
+                  <th style={{
+                    color: '#fff',
+                    fontWeight: '600',
+                    padding: '16px 12px',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    borderBottom: '2px solid rgba(255,255,255,0.2)'
+                  }}>GenAI Validation</th>
+                </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    // Flatten tableData to show initial_reaction and context_prompt as separate rows
-                    const flattenedRows = [];
-                    tableData.forEach((item) => {
-                      // Add Initial Reaction row
-                      if (item.initial_reaction) {
-                        const processedTraits = processTraits(item.initial_reaction.genAiRecords);
-                        flattenedRows.push({
-                          id: `${item._id}_initial`,
-                          version: item.version || '',
-                          concept_name: item.concept_name || '',
-                          type: item.initial_reaction.type || 'INITIAL_REACTION',
-                          text: item.initial_reaction.text || '',
-                          traits: processedTraits
-                        });
-                      }
-                      // Add Context Prompt row
-                      if (item.context_prompt) {
-                        const processedTraits = processTraits(item.context_prompt.genAiRecords);
-                        flattenedRows.push({
-                          id: `${item._id}_context`,
-                          version: item.version || '',
-                          concept_name: item.concept_name || '',
-                          type: item.context_prompt.type || 'CONTEXT_PROMPT',
-                          text: item.context_prompt.text || '',
-                          traits: processedTraits
-                        });
-                      }
-                    });
+                {(() => {
+                  // Flatten tableData to show initial_reaction and context_prompt as separate rows
+                  const flattenedRows = [];
+                  tableData.forEach((item) => {
+                    // Add Initial Reaction row
+                    if (item.initial_reaction) {
+                      const processedTraits = processTraits(item.initial_reaction.genAiRecords);
+                      flattenedRows.push({
+                        id: `${item._id}_initial`,
+                        version: item.version || '',
+                        concept_name: item.concept_name || '',
+                        type: item.initial_reaction.type || 'INITIAL_REACTION',
+                        text: item.initial_reaction.text || '',
+                        traits: processedTraits
+                      });
+                    }
+                    // Add Context Prompt row
+                    if (item.context_prompt) {
+                      const processedTraits = processTraits(item.context_prompt.genAiRecords);
+                      flattenedRows.push({
+                        id: `${item._id}_context`,
+                        version: item.version || '',
+                        concept_name: item.concept_name || '',
+                        type: item.context_prompt.type || 'CONTEXT_PROMPT',
+                        text: item.context_prompt.text || '',
+                        traits: processedTraits
+                      });
+                    }
+                  });
 
-                    return flattenedRows.map((row, rowIndex) => (
-                      <tr
-                        key={row.id}
-                        onClick={() => handleRowClick(row)}
-                        style={{
-                          cursor: 'pointer',
-                          animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
-                          transition: 'all 0.3s ease',
-                          background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
-                          e.currentTarget.style.transform = 'scale(1.01)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
-                          e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                      >
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057',
-                          fontWeight: '600',
-                          textAlign: 'center',
-                          width: '60px'
-                        }}>{rowIndex + 1}</td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057',
-                          fontWeight: '500'
-                        }}>{row.version}</td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057',
-                          fontWeight: '500'
-                        }}>{row.concept_name || '-'}</td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057'
-                        }}>
+                  return flattenedRows.map((row, rowIndex) => (
+                    <tr
+                      key={row.id}
+                      onClick={() => handleRowClick(row)}
+                      style={{
+                        cursor: 'pointer',
+                        animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
+                        transition: 'all 0.3s ease',
+                        background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
+                        e.currentTarget.style.transform = 'scale(1.01)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057',
+                        fontWeight: '600',
+                        textAlign: 'center',
+                        width: '60px'
+                      }}>{rowIndex + 1}</td>
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057',
+                        fontWeight: '500'
+                      }}>{row.version}</td>
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057',
+                        fontWeight: '500'
+                      }}>{row.concept_name || '-'}</td>
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057'
+                      }}>
                           <span style={{
                             display: 'inline-block',
                             padding: '4px 10px',
@@ -1706,31 +1614,31 @@ const GenAITraitValidationForm = () => {
                           }}>
                             {row.type}
                           </span>
-                        </td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057',
-                          minWidth: '600px',
-                          lineHeight: '1.5'
-                        }}>{row.text}</td>
+                      </td>
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057',
+                        minWidth: '600px',
+                        lineHeight: '1.5'
+                      }}>{row.text}</td>
 
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057'
-                        }}>
-                          <div className="traits-list-inline">
-                            {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
-                              row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
-                                <div key={index} className="trait-indicator-wrapper" style={{
-                                  display: 'inline-block',
-                                  marginRight: '8px',
-                                  marginBottom: '6px',
-                                  animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                                }}>
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057'
+                      }}>
+                        <div className="traits-list-inline">
+                          {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
+                            row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
+                              <div key={index} className="trait-indicator-wrapper" style={{
+                                display: 'inline-block',
+                                marginRight: '8px',
+                                marginBottom: '6px',
+                                animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                              }}>
                                   <span
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1784,28 +1692,28 @@ const GenAITraitValidationForm = () => {
                                       />
                                     )}
                                   </span>
-                                </div>
-                              ))
-                            ) : (
-                              <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057'
-                        }}>
-                          <div className="traits-list-inline">
-                            {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                              row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
-                                <div key={index} className="trait-indicator-wrapper" style={{
-                                  display: 'inline-block',
-                                  marginRight: '8px',
-                                  marginBottom: '6px',
-                                  animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                                }}>
+                              </div>
+                            ))
+                          ) : (
+                            <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{
+                        padding: '14px 12px',
+                        borderBottom: '1px solid #e8ecf1',
+                        fontSize: '14px',
+                        color: '#495057'
+                      }}>
+                        <div className="traits-list-inline">
+                          {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                            row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                              <div key={index} className="trait-indicator-wrapper" style={{
+                                display: 'inline-block',
+                                marginRight: '8px',
+                                marginBottom: '6px',
+                                animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
+                              }}>
                                   <span
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1864,16 +1772,16 @@ const GenAITraitValidationForm = () => {
                                       />
                                     )}
                                   </span>
-                                </div>
-                              ))
-                            ) : (
-                              <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ));
-                  })()}
+                              </div>
+                            ))
+                          ) : (
+                            <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ));
+                })()}
                 </tbody>
               </table>
             </div>
