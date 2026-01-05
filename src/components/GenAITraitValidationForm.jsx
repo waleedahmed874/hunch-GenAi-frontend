@@ -626,7 +626,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = 'wss://https://hunchgenaitest-320866101884.us-central1.run.app';
+    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
