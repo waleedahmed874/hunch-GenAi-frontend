@@ -1463,7 +1463,7 @@ const GenAITraitValidationForm = () => {
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.concept_name || '-'}</td>
 
                         {/* Initial Reaction Columns */}
-                        <td onClick={handleIRClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={item.initial_reaction?.text || ''}>
+                        <td onClick={handleIRClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', maxWidth: '200px' }} title={item.initial_reaction?.text || ''}>
                           {item.initial_reaction?.text || '-'}
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
@@ -1503,7 +1503,7 @@ const GenAITraitValidationForm = () => {
                         </td>
 
                         {/* Context Prompt Columns */}
-                        <td onClick={handleCPClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={item.context_prompt?.text || ''}>
+                        <td onClick={handleCPClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', maxWidth: '200px' }} title={item.context_prompt?.text || ''}>
                           {item.context_prompt?.text || '-'}
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
