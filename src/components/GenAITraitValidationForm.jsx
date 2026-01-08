@@ -1388,10 +1388,10 @@ const GenAITraitValidationForm = () => {
                       color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '100px', borderRight: '1px solid rgba(255,255,255,0.1)'
                     }}>Version</th>
                     <th rowSpan="2" style={{
-                      color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '120px', borderRight: '1px solid rgba(255,255,255,0.1)'
+                      color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '120px', borderRight: '2px solid rgba(255,255,255,0.3)'
                     }}>Concept Name</th>
                     <th colSpan="3" style={{
-                      color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)', borderRight: '1px solid rgba(255,255,255,0.1)'
+                      color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)', borderRight: '2px solid rgba(255,255,255,0.3)'
                     }}>Initial Reaction</th>
                     <th colSpan="3" style={{
                       color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)'
@@ -1400,7 +1400,7 @@ const GenAITraitValidationForm = () => {
                   <tr>
                     <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '200px' }}>Text</th>
                     <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>Hunch Traits</th>
-                    <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px', borderRight: '1px solid rgba(255,255,255,0.1)' }}>GenAI Validation</th>
+                    <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px', borderRight: '2px solid rgba(255,255,255,0.3)' }}>GenAI Validation</th>
                     <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '200px' }}>Text</th>
                     <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>Hunch Traits</th>
                     <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>GenAI Validation</th>
@@ -1460,10 +1460,10 @@ const GenAITraitValidationForm = () => {
                       >
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', textAlign: 'center', borderRight: '1px solid #f0f0f0' }}>{rowIndex + 1}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.version}</td>
-                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.concept_name || '-'}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '2px solid #999' }}>{item.concept_name || '-'}</td>
 
                         {/* Initial Reaction Columns */}
-                        <td onClick={handleIRClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', maxWidth: '200px' }} title={item.initial_reaction?.text || ''}>
+                        <td onClick={handleIRClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', maxWidth: '200px' }} title="Click To Add Initial Reaction Missing Traits Feedback">
                           {item.initial_reaction?.text || '-'}
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
@@ -1480,7 +1480,7 @@ const GenAITraitValidationForm = () => {
                             ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
                           </div>
                         </td>
-                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', borderRight: '1px solid #f0f0f0' }}>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', borderRight: '2px solid #999' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                             {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
                               irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
@@ -1503,7 +1503,7 @@ const GenAITraitValidationForm = () => {
                         </td>
 
                         {/* Context Prompt Columns */}
-                        <td onClick={handleCPClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', maxWidth: '200px' }} title={item.context_prompt?.text || ''}>
+                        <td onClick={handleCPClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', maxWidth: '200px' }} title="Click to Add Context Prompt Missing Traits Feedback">
                           {item.context_prompt?.text || '-'}
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
@@ -1817,7 +1817,7 @@ const GenAITraitValidationForm = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0 }}>Add Trait Feedback</h2>
+              <h2 style={{ margin: 0 }}>Missing Trait Feedback</h2>
               <button
                 onClick={() => setSelectedRowForFeedback(null)}
                 style={{
