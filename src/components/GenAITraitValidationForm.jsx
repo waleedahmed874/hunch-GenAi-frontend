@@ -296,7 +296,7 @@ const GenAITraitValidationForm = () => {
 
   const handleRowClick = (row) => {
     setSelectedRowForFeedback(row);
-    setSelectedTraitFromList('');
+    setSelectedTraitsFromList([]);
     setFeedbackText('');
   };
 
@@ -786,40 +786,9 @@ const GenAITraitValidationForm = () => {
     console.log('Data Array Length:', dataArray?.length);
 
     // Flatten data to create table rows
-    const tableRows = [];
-    if (dataArray && dataArray.length > 0) {
-      dataArray.forEach((item, idx) => {
+    // MODIFIED: We now use the raw data array directly to support the new table structure
+    const tableRows = dataArray || [];
 
-
-        // Add Initial Reaction row
-        if (item.initial_reaction) {
-          const processedTraits = processTraits(item.initial_reaction.genAiRecords);
-          tableRows.push({
-            id: `${item._id || idx}_initial`,
-            version: item.version || '',
-            concept_name: item.concept_name || '',
-            type: item.initial_reaction.type || 'INITIAL_REACTION',
-            text: item.initial_reaction.text || '',
-            traits: processedTraits
-          });
-        }
-
-        // Add Context Prompt row
-        if (item.context_prompt) {
-          const processedTraits = processTraits(item.context_prompt.genAiRecords);
-          tableRows.push({
-            id: `${item._id || idx}_context`,
-            version: item.version || '',
-            concept_name: item.concept_name || '',
-            type: item.context_prompt.type || 'CONTEXT_PROMPT',
-            text: item.context_prompt.text || '',
-            traits: processedTraits
-          });
-        }
-      });
-    } else {
-      console.log('No dataArray or dataArray is empty');
-    }
 
     console.log('Final Table Rows:', tableRows);
     console.log('Table Rows Count:', tableRows.length);
@@ -916,7 +885,8 @@ const GenAITraitValidationForm = () => {
           borderRadius: '12px',
           overflow: 'hidden',
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          background: '#fff'
+          background: '#fff',
+          tableLayout: 'fixed'
         }}>
           <thead style={{
             position: 'sticky',
@@ -926,293 +896,167 @@ const GenAITraitValidationForm = () => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
             <tr>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Version</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Concept Name</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)',
-                width: '60px'
+              <th rowSpan="2" style={{
+                color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'center', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '50px', borderRight: '1px solid rgba(255,255,255,0.1)'
               }}>No</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Type</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)',
-                minWidth: '600px'
-              }}>Text</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>Hunch LLM Trait Assignments</th>
-              <th style={{
-                color: '#fff',
-                fontWeight: '600',
-                padding: '16px 12px',
-                textAlign: 'left',
-                fontSize: '13px',
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                borderBottom: '2px solid rgba(255,255,255,0.2)'
-              }}>GenAI Validation</th>
+              <th rowSpan="2" style={{
+                color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '100px', borderRight: '1px solid rgba(255,255,255,0.1)'
+              }}>Version</th>
+              <th rowSpan="2" style={{
+                color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '120px', borderRight: '1px solid rgba(255,255,255,0.1)'
+              }}>Concept Name</th>
+              <th colSpan="3" style={{
+                color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)', borderRight: '1px solid rgba(255,255,255,0.1)'
+              }}>Initial Reaction</th>
+              <th colSpan="3" style={{
+                color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)'
+              }}>Context Prompt</th>
+            </tr>
+            <tr>
+              <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '200px' }}>Text</th>
+              <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>Hunch Traits</th>
+              <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px', borderRight: '1px solid rgba(255,255,255,0.1)' }}>GenAI Validation</th>
+              <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '200px' }}>Text</th>
+              <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>Hunch Traits</th>
+              <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>GenAI Validation</th>
             </tr>
           </thead>
           <tbody>
-            {tableRows.map((row, rowIndex) => (
-              <tr
-                key={row.id}
-                onClick={() => handleRowClick(row)}
-                style={{
-                  cursor: 'pointer',
-                  animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
-                  transition: 'all 0.3s ease',
-                  background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
-                  e.currentTarget.style.transform = 'scale(1.01)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057',
-                  fontWeight: '500'
-                }}>{row.version}</td>
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057',
-                  fontWeight: '500'
-                }}>{row.concept_name || '-'}</td>
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057',
-                  fontWeight: '600',
-                  textAlign: 'center',
-                  width: '60px'
-                }}>{rowIndex + 1}</td>
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057'
-                }}>
-                  <span style={{
-                    display: 'inline-block',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    background: row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
-                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                      : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                    color: '#fff',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    {row.type}
-                  </span>
-                </td>
-                <td style={{
-                  padding: '14px 12px',
-                  borderBottom: '1px solid #e8ecf1',
-                  fontSize: '14px',
-                  color: '#495057',
-                  minWidth: '600px',
-                  lineHeight: '1.5'
-                }}>{row.text}</td>
+            {tableRows.map((item, rowIndex) => {
+              const irTraits = item.initial_reaction ? processTraits(item.initial_reaction.genAiRecords) : [];
+              const cpTraits = item.context_prompt ? processTraits(item.context_prompt.genAiRecords) : [];
 
-                <td className="traits-cell">
-                  <div className="traits-list-inline">
-                    {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
-                      row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
-                        <div key={index} className="trait-indicator-wrapper" style={{
-                          display: 'inline-block',
-                          marginRight: '8px',
-                          marginBottom: '6px',
-                          animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                        }}>
-                          <span
-                            style={{
-                              color: '#495057',
-                              fontWeight: '500',
-                              display: 'inline-block',
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              border: '1px solid #e0e6ed',
-                              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                              position: 'relative',
-                              transition: 'all 0.3s ease',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                              cursor: 'default'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.12)';
-                              e.currentTarget.style.background = 'linear-gradient(135deg, #fff 0%, #f0f2f5 100%)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-                              e.currentTarget.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
-                            }}
-                            title={trait.rationale || trait.name}
-                          >
-                            <span className="trait-name">{trait.name}</span>
-                            {/* Black dot if feedback exists */}
-                            {trait.feedback && trait.feedback.trim() !== '' && (
-                              <span
-                                style={{
-                                  display: 'inline-block',
-                                  marginLeft: '5px',
-                                  width: '8px',
-                                  height: '8px',
-                                  borderRadius: '50%',
-                                  backgroundColor: '#111',
-                                  verticalAlign: 'middle'
-                                }}
-                                title="Feedback added"
-                              />
-                            )}
+              const handleIRClick = (e) => {
+                e.stopPropagation();
+                const payload = {
+                  id: `${item._id || rowIndex}_initial`,
+                  version: item.version || '',
+                  concept_name: item.concept_name || '',
+                  type: 'INITIAL_REACTION',
+                  text: item.initial_reaction?.text || '',
+                  traits: irTraits,
+                  timestamp: Date.now()
+                };
+                console.log('Sending Payload (IR):', payload);
+                handleRowClick(payload);
+              };
+
+              const handleCPClick = (e) => {
+                e.stopPropagation();
+                const payload = {
+                  id: `${item._id || rowIndex}_context`,
+                  version: item.version || '',
+                  concept_name: item.concept_name || '',
+                  type: 'CONTEXT_PROMPT',
+                  text: item.context_prompt?.text || '',
+                  traits: cpTraits,
+                  timestamp: Date.now()
+                };
+                console.log('Sending Payload (CP):', payload);
+                handleRowClick(payload);
+              };
+
+              return (
+                <tr
+                  key={item._id || rowIndex}
+                  style={{
+                    animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
+                    transition: 'all 0.3s ease',
+                    background: rowIndex % 2 === 0 ? '#fff' : '#f8f9ff'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
+                  }}
+                >
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', textAlign: 'center', borderRight: '1px solid #f0f0f0' }}>{rowIndex + 1}</td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.version}</td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.concept_name || '-'}</td>
+
+                  {/* Initial Reaction Columns */}
+                  <td onClick={handleIRClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={item.initial_reaction?.text || ''}>
+                    {item.initial_reaction?.text || '-'}
+                  </td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {irTraits.filter(t => t.llmScore === 1).length > 0 ? (
+                        irTraits.filter(t => t.llmScore === 1).map((trait, index) => (
+                          <span key={index} style={{
+                            display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
+                            background: '#e9ecef', color: '#495057', border: '1px solid #dee2e6'
+                          }} title={trait.name}>
+                            {trait.name}
                           </span>
-                        </div>
-                      ))
-                    ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                    )}
-                  </div>
-                </td>
-                <td className="traits-cell">
-                  <div className="traits-list-inline">
-                    {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                      row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
-                        <div key={index} className="trait-indicator-wrapper" style={{
-                          display: 'inline-block',
-                          marginRight: '8px',
-                          marginBottom: '6px',
-                          animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                        }}>
-                          <span
+                        ))
+                      ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
+                    </div>
+                  </td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', borderRight: '1px solid #f0f0f0' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                        irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                          <span key={index}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'initial_reaction' });
+                            }}
                             style={{
-                              color: trait.color,
-                              fontWeight: '600',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              border: `2px solid ${trait.color}`,
-                              background: trait.color === 'black'
-                                ? 'linear-gradient(135deg, #f5f5f5 0%, #e9ecef 100%)'
-                                : trait.color === 'red'
-                                  ? 'linear-gradient(135deg, #ffe6e6 0%, #ffd6d6 100%)'
-                                  : 'linear-gradient(135deg, #e6ffe6 0%, #d4f4d4 100%)',
-                              position: 'relative',
-                              transition: 'all 0.3s ease',
-                              boxShadow: `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`,
-                              cursor: 'pointer'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-3px) scale(1.08)';
-                              e.currentTarget.style.boxShadow = `0 6px 12px ${trait.color === 'black' ? 'rgba(0,0,0,0.2)' : trait.color === 'red' ? 'rgba(255,0,0,0.25)' : 'rgba(0,255,0,0.25)'}`;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                              e.currentTarget.style.boxShadow = `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`;
-                            }}
-                            title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
-                          >
-                            <span style={{ fontSize: '14px' }}>{trait.icon}</span>
-                            <span className="trait-name">{trait.displayName}</span>
-                            {/* Black dot if feedback exists */}
-                            {trait.feedback && trait.feedback.trim() !== '' && (
-                              <span
-                                style={{
-                                  display: 'inline-block',
-                                  marginLeft: '5px',
-                                  width: '8px',
-                                  height: '8px',
-                                  borderRadius: '50%',
-                                  backgroundColor: '#111',
-                                  verticalAlign: 'middle'
-                                }}
-                                title="Feedback added"
-                              />
-                            )}
+                              display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
+                              background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : '#f0fff4',
+                              color: trait.color, border: `1px solid ${trait.color}`, cursor: 'pointer'
+                            }} title={trait.rationale}>
+                            <span>{trait.icon}</span>
+                            <span>{trait.displayName}</span>
                           </span>
-                        </div>
-                      ))
-                    ) : (
-                      <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                    )}
-                  </div>
-                </td>
-                {/* New Possible Traits column */}
-                <td className="possible-traits-cell">
-                  <div style={{ fontSize: '13px', color: '#444', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
-                      ? possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-                      : row.type === 'CONTEXT_PROMPT' || row.type === 'context_prompt'
-                        ? possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => <span key={t.title + '_' + i} style={{ background: '#f4f8fa', border: '1px solid #ececec', borderRadius: 5, padding: '2px 8px', marginRight: 5 }}>{t.title}</span>)
-                        : null}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                        ))
+                      ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
+                    </div>
+                  </td>
+
+                  {/* Context Prompt Columns */}
+                  <td onClick={handleCPClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={item.context_prompt?.text || ''}>
+                    {item.context_prompt?.text || '-'}
+                  </td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {cpTraits.filter(t => t.llmScore === 1).length > 0 ? (
+                        cpTraits.filter(t => t.llmScore === 1).map((trait, index) => (
+                          <span key={index} style={{
+                            display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
+                            background: '#e9ecef', color: '#495057', border: '1px solid #dee2e6'
+                          }} title={trait.name}>
+                            {trait.name}
+                          </span>
+                        ))
+                      ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
+                    </div>
+                  </td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                        cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                          <span key={index}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'context_prompt' });
+                            }}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
+                              background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : '#f0fff4',
+                              color: trait.color, border: `1px solid ${trait.color}`, cursor: 'pointer'
+                            }} title={trait.rationale}>
+                            <span>{trait.icon}</span>
+                            <span>{trait.displayName}</span>
+                          </span>
+                        ))
+                      ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -1526,7 +1370,8 @@ const GenAITraitValidationForm = () => {
                 borderRadius: '12px',
                 overflow: 'hidden',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                background: '#fff'
+                background: '#fff',
+                tableLayout: 'fixed'
               }}>
                 <thead style={{
                   position: 'sticky',
@@ -1536,115 +1381,70 @@ const GenAITraitValidationForm = () => {
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                 }}>
                   <tr>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)',
-                      width: '60px'
+                    <th rowSpan="2" style={{
+                      color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'center', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '50px', borderRight: '1px solid rgba(255,255,255,0.1)'
                     }}>No</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    <th rowSpan="2" style={{
+                      color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '100px', borderRight: '1px solid rgba(255,255,255,0.1)'
                     }}>Version</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
+                    <th rowSpan="2" style={{
+                      color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '120px', borderRight: '1px solid rgba(255,255,255,0.1)'
                     }}>Concept Name</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Type</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)',
-                      minWidth: '600px'
-                    }}>Text</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>Hunch LLM Trait Assignments</th>
-                    <th style={{
-                      color: '#fff',
-                      fontWeight: '600',
-                      padding: '16px 12px',
-                      textAlign: 'left',
-                      fontSize: '13px',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      borderBottom: '2px solid rgba(255,255,255,0.2)'
-                    }}>GenAI Validation</th>
+                    <th colSpan="3" style={{
+                      color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)', borderRight: '1px solid rgba(255,255,255,0.1)'
+                    }}>Initial Reaction</th>
+                    <th colSpan="3" style={{
+                      color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)'
+                    }}>Context Prompt</th>
+                  </tr>
+                  <tr>
+                    <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '200px' }}>Text</th>
+                    <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>Hunch Traits</th>
+                    <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px', borderRight: '1px solid rgba(255,255,255,0.1)' }}>GenAI Validation</th>
+                    <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '200px' }}>Text</th>
+                    <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>Hunch Traits</th>
+                    <th style={{ color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'left', fontSize: '11px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '150px' }}>GenAI Validation</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(() => {
-                    // Flatten tableData to show initial_reaction and context_prompt as separate rows
-                    const flattenedRows = [];
-                    tableData.forEach((item) => {
-                      // Add Initial Reaction row
-                      if (item.initial_reaction) {
-                        const processedTraits = processTraits(item.initial_reaction.genAiRecords);
-                        flattenedRows.push({
-                          id: `${item._id}_initial`,
-                          version: item.version || '',
-                          concept_name: item.concept_name || '',
-                          type: item.initial_reaction.type || 'INITIAL_REACTION',
-                          text: item.initial_reaction.text || '',
-                          traits: processedTraits
-                        });
-                      }
-                      // Add Context Prompt row
-                      if (item.context_prompt) {
-                        const processedTraits = processTraits(item.context_prompt.genAiRecords);
-                        flattenedRows.push({
-                          id: `${item._id}_context`,
-                          version: item.version || '',
-                          concept_name: item.concept_name || '',
-                          type: item.context_prompt.type || 'CONTEXT_PROMPT',
-                          text: item.context_prompt.text || '',
-                          traits: processedTraits
-                        });
-                      }
-                    });
+                  {tableData.map((item, rowIndex) => {
+                    const irTraits = item.initial_reaction ? processTraits(item.initial_reaction.genAiRecords) : [];
+                    const cpTraits = item.context_prompt ? processTraits(item.context_prompt.genAiRecords) : [];
 
-                    return flattenedRows.map((row, rowIndex) => (
+                    const handleIRClick = (e) => {
+                      e.stopPropagation();
+                      const payload = {
+                        id: `${item._id || rowIndex}_initial`,
+                        version: item.version || '',
+                        concept_name: item.concept_name || '',
+                        type: 'INITIAL_REACTION',
+                        text: item.initial_reaction?.text || '',
+                        traits: irTraits,
+                        timestamp: Date.now()
+                      };
+                      console.log('Sending Payload (IR - DB Table):', payload);
+                      handleRowClick(payload);
+                    };
+
+                    const handleCPClick = (e) => {
+                      e.stopPropagation();
+                      const payload = {
+                        id: `${item._id || rowIndex}_context`,
+                        version: item.version || '',
+                        concept_name: item.concept_name || '',
+                        type: 'CONTEXT_PROMPT',
+                        text: item.context_prompt?.text || '',
+                        traits: cpTraits,
+                        timestamp: Date.now()
+                      };
+                      console.log('Sending Payload (CP - DB Table):', payload);
+                      handleRowClick(payload);
+                    };
+
+                    return (
                       <tr
-                        key={row.id}
-                        onClick={() => handleRowClick(row)}
+                        key={item._id || rowIndex}
+                        // onClick={() => handleRowClick(item)}
                         style={{
                           cursor: 'pointer',
                           animation: `fadeInUp 0.5s ease-out ${rowIndex * 0.05}s both`,
@@ -1653,227 +1453,97 @@ const GenAITraitValidationForm = () => {
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = 'linear-gradient(90deg, #f0f4ff 0%, #e8f0ff 100%)';
-                          e.currentTarget.style.transform = 'scale(1.01)';
-                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.15)';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = rowIndex % 2 === 0 ? '#fff' : '#f8f9ff';
-                          e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.boxShadow = 'none';
                         }}
                       >
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057',
-                          fontWeight: '600',
-                          textAlign: 'center',
-                          width: '60px'
-                        }}>{rowIndex + 1}</td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057',
-                          fontWeight: '500'
-                        }}>{row.version}</td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057',
-                          fontWeight: '500'
-                        }}>{row.concept_name || '-'}</td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057'
-                        }}>
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            background: row.type === 'INITIAL_REACTION' || row.type === 'initial_reaction'
-                              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                              : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                            color: '#fff',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
-                          }}>
-                            {row.type}
-                          </span>
-                        </td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057',
-                          minWidth: '600px',
-                          lineHeight: '1.5'
-                        }}>{row.text}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', textAlign: 'center', borderRight: '1px solid #f0f0f0' }}>{rowIndex + 1}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.version}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.concept_name || '-'}</td>
 
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057'
-                        }}>
-                          <div className="traits-list-inline">
-                            {row.traits && row.traits.filter(t => t.llmScore === 1).length > 0 ? (
-                              row.traits.filter(t => t.llmScore === 1).map((trait, index) => (
-                                <div key={index} className="trait-indicator-wrapper" style={{
-                                  display: 'inline-block',
-                                  marginRight: '8px',
-                                  marginBottom: '6px',
-                                  animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                                }}>
-                                  <span
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedTraitFeedback({
-                                        ...trait,
-                                        documentId: row.id.split('_')[0],
-                                        type: row.type
-                                      });
-                                      setFeedbackText(trait.feedback || '');
-                                    }}
-                                    style={{
-                                      color: '#495057',
-                                      fontWeight: '500',
-                                      display: 'inline-block',
-                                      padding: '6px 12px',
-                                      borderRadius: '8px',
-                                      border: '1px solid #e0e6ed',
-                                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                                      position: 'relative',
-                                      transition: 'all 0.3s ease',
-                                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                                      cursor: 'pointer',
-                                      userSelect: 'none'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-                                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.12)';
-                                      e.currentTarget.style.background = 'linear-gradient(135deg, #fff 0%, #f0f2f5 100%)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
-                                      e.currentTarget.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
-                                    }}
-                                    title={trait.rationale || trait.name}
-                                  >
-                                    <span className="trait-name">{trait.name}</span>
-                                    {/* Black dot if feedback exists */}
-                                    {trait.feedback && trait.feedback.trim() !== '' && (
-                                      <span
-                                        style={{
-                                          display: 'inline-block',
-                                          marginLeft: '5px',
-                                          width: '8px',
-                                          height: '8px',
-                                          borderRadius: '50%',
-                                          backgroundColor: '#111',
-                                          verticalAlign: 'middle'
-                                        }}
-                                        title="Feedback added"
-                                      />
-                                    )}
-                                  </span>
-                                </div>
+                        {/* Initial Reaction Columns */}
+                        <td onClick={handleIRClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={item.initial_reaction?.text || ''}>
+                          {item.initial_reaction?.text || '-'}
+                        </td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {irTraits.filter(t => t.llmScore === 1).length > 0 ? (
+                              irTraits.filter(t => t.llmScore === 1).map((trait, index) => (
+                                <span key={index} style={{
+                                  display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
+                                  background: '#e9ecef', color: '#495057', border: '1px solid #dee2e6'
+                                }} title={trait.name}>
+                                  {trait.name}
+                                </span>
                               ))
-                            ) : (
-                              <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                            )}
+                            ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
                           </div>
                         </td>
-                        <td style={{
-                          padding: '14px 12px',
-                          borderBottom: '1px solid #e8ecf1',
-                          fontSize: '14px',
-                          color: '#495057'
-                        }}>
-                          <div className="traits-list-inline">
-                            {row.traits && row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                              row.traits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
-                                <div key={index} className="trait-indicator-wrapper" style={{
-                                  display: 'inline-block',
-                                  marginRight: '8px',
-                                  marginBottom: '6px',
-                                  animation: `fadeInScale 0.4s ease-out ${index * 0.05}s both`
-                                }}>
-                                  <span
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedTraitFeedback({
-                                        ...trait,
-                                        documentId: row.id.split('_')[0],
-                                        type: row.type
-                                      });
-                                      setFeedbackText(trait.feedback || '');
-                                    }}
-                                    style={{
-                                      color: trait.color,
-                                      fontWeight: '600',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '6px',
-                                      padding: '6px 12px',
-                                      borderRadius: '8px',
-                                      border: `2px solid ${trait.color}`,
-                                      background: trait.color === 'black'
-                                        ? 'linear-gradient(135deg, #f5f5f5 0%, #e9ecef 100%)'
-                                        : trait.color === 'red'
-                                          ? 'linear-gradient(135deg, #ffe6e6 0%, #ffd6d6 100%)'
-                                          : 'linear-gradient(135deg, #e6ffe6 0%, #d4f4d4 100%)',
-                                      position: 'relative',
-                                      transition: 'all 0.3s ease',
-                                      boxShadow: `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`,
-                                      cursor: 'pointer',
-                                      userSelect: 'none'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.transform = 'translateY(-3px) scale(1.08)';
-                                      e.currentTarget.style.boxShadow = `0 6px 12px ${trait.color === 'black' ? 'rgba(0,0,0,0.2)' : trait.color === 'red' ? 'rgba(255,0,0,0.25)' : 'rgba(0,255,0,0.25)'}`;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                                      e.currentTarget.style.boxShadow = `0 2px 6px ${trait.color === 'black' ? 'rgba(0,0,0,0.1)' : trait.color === 'red' ? 'rgba(255,0,0,0.15)' : 'rgba(0,255,0,0.15)'}`;
-                                    }}
-                                    title={`Rationale: ${trait.rationale || 'N/A'}\nConfidence: ${(trait.confidence || 0).toFixed(2)}`}
-                                  >
-                                    <span style={{ fontSize: '14px' }}>{trait.icon}</span>
-                                    <span className="trait-name">{trait.displayName}</span>
-                                    {/* Black dot if feedback exists */}
-                                    {trait.feedback && trait.feedback.trim() !== '' && (
-                                      <span
-                                        style={{
-                                          display: 'inline-block',
-                                          marginLeft: '5px',
-                                          width: '8px',
-                                          height: '8px',
-                                          borderRadius: '50%',
-                                          backgroundColor: '#111',
-                                          verticalAlign: 'middle'
-                                        }}
-                                        title="Feedback added"
-                                      />
-                                    )}
-                                  </span>
-                                </div>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', borderRight: '1px solid #f0f0f0' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                              irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                                <span key={index}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'initial_reaction' });
+                                  }}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
+                                    background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : '#f0fff4',
+                                    color: trait.color, border: `1px solid ${trait.color}`, cursor: 'pointer'
+                                  }} title={trait.rationale}>
+                                  <span>{trait.icon}</span>
+                                  <span>{trait.displayName}</span>
+                                </span>
                               ))
-                            ) : (
-                              <span style={{ color: '#999', fontStyle: 'italic' }}>-</span>
-                            )}
+                            ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
+                          </div>
+                        </td>
+
+                        {/* Context Prompt Columns */}
+                        <td onClick={handleCPClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={item.context_prompt?.text || ''}>
+                          {item.context_prompt?.text || '-'}
+                        </td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {cpTraits.filter(t => t.llmScore === 1).length > 0 ? (
+                              cpTraits.filter(t => t.llmScore === 1).map((trait, index) => (
+                                <span key={index} style={{
+                                  display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
+                                  background: '#e9ecef', color: '#495057', border: '1px solid #dee2e6'
+                                }} title={trait.name}>
+                                  {trait.name}
+                                </span>
+                              ))
+                            ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
+                              cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                                <span key={index}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'context_prompt' });
+                                  }}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
+                                    background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : '#f0fff4',
+                                    color: trait.color, border: `1px solid ${trait.color}`, cursor: 'pointer'
+                                  }} title={trait.rationale}>
+                                  <span>{trait.icon}</span>
+                                  <span>{trait.displayName}</span>
+                                </span>
+                              ))
+                            ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
                           </div>
                         </td>
                       </tr>
-                    ));
-                  })()}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -2180,7 +1850,8 @@ const GenAITraitValidationForm = () => {
                 maxHeight: '150px',
                 overflowY: 'auto'
               }}>
-                {selectedRowForFeedback.text}
+                {console.log('Popup Render - Row:', selectedRowForFeedback)}
+                {selectedRowForFeedback.text || <span style={{ color: '#999' }}>No text available</span>}
               </div>
             </div>
 
@@ -2256,13 +1927,19 @@ const GenAITraitValidationForm = () => {
                   ];
 
                   // Filter traits based on type
+                  console.log('Popup Type (Hardcoded):', selectedRowForFeedback);
+                  if (possibleTraits.length > 0) {
+                    console.log('First Trait Sample:', possibleTraits[0]);
+                  }
+
                   const filteredTraits = possibleTraits
                     .filter(t => {
-                      const type = selectedRowForFeedback.type.toLowerCase();
+                      const type = (selectedRowForFeedback.type || '').toLowerCase();
                       if (type.includes('initial')) return t.initialReactionEnabled;
                       if (type.includes('context')) return t.contextPromptEnabled;
                       return false;
                     });
+                  console.log('Filtered Traits Count:', filteredTraits.length);
 
                   // Sort traits according to the custom order
                   const sortedTraits = filteredTraits.sort((a, b) => {
