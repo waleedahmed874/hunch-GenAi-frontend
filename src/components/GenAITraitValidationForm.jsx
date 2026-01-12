@@ -58,6 +58,14 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket states
   const [wsConnected, setWsConnected] = useState(false);
+
+  useEffect(() => {
+    if (selectedTraitFeedback) {
+      setFeedbackText(selectedTraitFeedback.feedback || '');
+    } else {
+      setFeedbackText('');
+    }
+  }, [selectedTraitFeedback]);
   const wsRef = useRef(null);
 
   // CSV upload states
