@@ -13,7 +13,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTraits(true);
       setTraitsError(null);
       try {
-        const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits`);
         if (!response.ok) throw new Error(`Failed: ${response.status}`);
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
@@ -54,9 +54,18 @@ const GenAITraitValidationForm = () => {
   const [selectedRowForFeedback, setSelectedRowForFeedback] = useState(null);
   const [selectedTraitsFromList, setSelectedTraitsFromList] = useState([]);
   const [shouldExist, setShouldExist] = useState(true);
+  const [isTraitValidationIncorrect, setIsTraitValidationIncorrect] = useState(false);
 
   // WebSocket states
   const [wsConnected, setWsConnected] = useState(false);
+
+  useEffect(() => {
+    if (selectedTraitFeedback) {
+      setFeedbackText(selectedTraitFeedback.feedback || '');
+    } else {
+      setFeedbackText('');
+    }
+  }, [selectedTraitFeedback]);
   const wsRef = useRef(null);
 
   // CSV upload states
@@ -173,10 +182,8 @@ const GenAITraitValidationForm = () => {
       }
     }
 
-    console.log('Submitting form', apiData);
-
     try {
-      const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/process', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -440,7 +447,7 @@ const GenAITraitValidationForm = () => {
     setTableError(null);
 
     try {
-      const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits/db`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -470,7 +477,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTable(true);
       setTableError(null);
       try {
-        const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits/db`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -496,7 +503,7 @@ const GenAITraitValidationForm = () => {
     setIsLoadingTable(true);
     setTableError(null);
     try {
-      const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits/db`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -626,7 +633,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
+    const wsUrl = import.meta.env.VITE_WS_URL;
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
@@ -750,7 +757,8 @@ const GenAITraitValidationForm = () => {
         genAiScore: genAiScore,
         action: record.action || 'No change',
         finalScore: record.finalScore || 0,
-        feedback: record.feedback || record.genAiSays?.feedback || ''
+        feedback: record.feedback || record.genAiSays?.feedback || '',
+        _id: record._id
       };
     }).filter(trait => trait !== null);
   };
@@ -1000,7 +1008,8 @@ const GenAITraitValidationForm = () => {
                           <span key={index}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'initial_reaction' });
+
+                              setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'INITIAL_REACTION' });
                             }}
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
@@ -1040,7 +1049,7 @@ const GenAITraitValidationForm = () => {
                           <span key={index}
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'context_prompt' });
+                              setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'CONTEXT_PROMPT' });
                             }}
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
@@ -1487,7 +1496,7 @@ const GenAITraitValidationForm = () => {
                                 <span key={index}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'initial_reaction' });
+                                    setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'INITIAL_REACTION' });
                                   }}
                                   style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
@@ -1527,7 +1536,7 @@ const GenAITraitValidationForm = () => {
                                 <span key={index}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'context_prompt' });
+                                    setSelectedTraitFeedback({ ...trait, documentId: item._id, type: 'CONTEXT_PROMPT' });
                                   }}
                                   style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
@@ -1570,7 +1579,10 @@ const GenAITraitValidationForm = () => {
             zIndex: 1000,
             padding: '20px'
           }}
-          onClick={() => setSelectedTraitFeedback(null)}
+          onClick={() => {
+            setSelectedTraitFeedback(null);
+            setIsTraitValidationIncorrect(false);
+          }}
         >
           <div
             style={{
@@ -1593,7 +1605,10 @@ const GenAITraitValidationForm = () => {
                 <span>Trait Feedback: {selectedTraitFeedback.name}</span>
               </h2>
               <button
-                onClick={() => setSelectedTraitFeedback(null)}
+                onClick={() => {
+                  setSelectedTraitFeedback(null);
+                  setIsTraitValidationIncorrect(false);
+                }}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -1709,11 +1724,48 @@ const GenAITraitValidationForm = () => {
               />
             </div>
 
+            <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                onClick={() => setIsTraitValidationIncorrect(!isTraitValidationIncorrect)}
+                style={{
+                  width: '40px',
+                  height: '22px',
+                  backgroundColor: isTraitValidationIncorrect ? '#28a745' : '#ccc',
+                  borderRadius: '22px',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s',
+                  flexShrink: 0
+                }}
+              >
+                <div
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    backgroundColor: 'white',
+                    borderRadius: '50%',
+                    position: 'absolute',
+                    top: '2px',
+                    left: isTraitValidationIncorrect ? '20px' : '2px',
+                    transition: 'left 0.3s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                  }}
+                />
+              </div>
+              <label
+                onClick={() => setIsTraitValidationIncorrect(!isTraitValidationIncorrect)}
+                style={{ cursor: 'pointer', color: '#666', fontWeight: 'bold', userSelect: 'none' }}
+              >
+                Trait Validation is Incorrect
+              </label>
+            </div>
+
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => {
                   setSelectedTraitFeedback(null);
                   setFeedbackText('');
+                  setIsTraitValidationIncorrect(false);
                 }}
                 disabled={isSubmittingFeedback}
                 style={{
@@ -1733,11 +1785,11 @@ const GenAITraitValidationForm = () => {
               <button
                 onClick={async () => {
                   if (!selectedTraitFeedback) return;
-
+                  console.log('Submitting feedback', selectedTraitFeedback);
                   setIsSubmittingFeedback(true);
                   try {
                     // TODO: Replace with actual API endpoint
-                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback', {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits/feedback`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -1746,7 +1798,9 @@ const GenAITraitValidationForm = () => {
                         traitName: selectedTraitFeedback.name,
                         feedback: feedbackText,
                         documentId: selectedTraitFeedback.documentId,
-                        type: selectedTraitFeedback.type
+                        genAiRecordId: selectedTraitFeedback._id,
+                        type: selectedTraitFeedback.type,
+                        isTraitValidationIncorrect: isTraitValidationIncorrect
                       })
                     });
 
@@ -1758,6 +1812,7 @@ const GenAITraitValidationForm = () => {
                     alert('Feedback submitted successfully!');
                     setSelectedTraitFeedback(null);
                     setFeedbackText('');
+                    setIsTraitValidationIncorrect(false);
                   } catch (error) {
                     console.error('Error submitting feedback:', error);
                     alert(`Error submitting feedback: ${error.message}`);
@@ -1927,9 +1982,7 @@ const GenAITraitValidationForm = () => {
                   ];
 
                   // Filter traits based on type
-                  console.log('Popup Type (Hardcoded):', selectedRowForFeedback);
                   if (possibleTraits.length > 0) {
-                    console.log('First Trait Sample:', possibleTraits[0]);
                   }
 
                   const filteredTraits = possibleTraits
@@ -1939,7 +1992,6 @@ const GenAITraitValidationForm = () => {
                       if (type.includes('context')) return t.contextPromptEnabled;
                       return false;
                     });
-                  console.log('Filtered Traits Count:', filteredTraits.length);
 
                   // Sort traits according to the custom order
                   const sortedTraits = filteredTraits.sort((a, b) => {
