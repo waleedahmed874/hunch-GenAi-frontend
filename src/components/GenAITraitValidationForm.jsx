@@ -25,7 +25,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTraits(true);
       setTraitsError(null);
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits`);
+        const response = await fetch(`${getApiBaseUrl()}/api/traits`);
         if (!response.ok) throw new Error(`Failed: ${response.status}`);
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
