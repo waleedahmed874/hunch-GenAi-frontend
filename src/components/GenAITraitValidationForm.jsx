@@ -2,6 +2,18 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Select from 'react-select';
 import './GenAITraitValidationForm.css';
 
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (window.location.hostname === 'localhost') return 'http://localhost:3000';
+  return 'https://hunchgenaitest-320866101884.us-central1.run.app';
+};
+
+const getWsBaseUrl = () => {
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL;
+  if (window.location.hostname === 'localhost') return 'ws://localhost:3000';
+  return 'wss://hunchgenaitest-320866101884.us-central1.run.app';
+};
+
 const GenAITraitValidationForm = () => {
   // Possible traits for the API-driven possible traits table
   const [possibleTraits, setPossibleTraits] = useState([]);
@@ -183,7 +195,7 @@ const GenAITraitValidationForm = () => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits/process`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/traits/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -477,7 +489,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTable(true);
       setTableError(null);
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits/db`);
+        const response = await fetch(`${getApiBaseUrl()}/api/traits/db`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -633,7 +645,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL;
+    const wsUrl = getWsBaseUrl();
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
@@ -1789,7 +1801,7 @@ const GenAITraitValidationForm = () => {
                   setIsSubmittingFeedback(true);
                   try {
                     // TODO: Replace with actual API endpoint
-                    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/traits/feedback`, {
+                    const response = await fetch(`${getApiBaseUrl()}/api/traits/feedback`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -2148,7 +2160,7 @@ const GenAITraitValidationForm = () => {
                       shouldExist: shouldExist
                     }));
 
-                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/store-feedback', {
+                    const response = await fetch(`${getApiBaseUrl()}/api/traits/store-feedback`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
