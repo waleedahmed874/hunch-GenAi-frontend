@@ -35,7 +35,8 @@ const GenAITraitValidationForm = () => {
   const getInitialFormState = () => ({
     version: 'basic',
     project_input: '',
-    concept_input: ''
+    concept_input: '',
+    projectId: ''
   });
 
   const [formData, setFormData] = useState(getInitialFormState);
@@ -157,6 +158,7 @@ const GenAITraitValidationForm = () => {
     if (useCsv && csvData.length > 0) {
       apiData = {
         version: formData.version,
+        project_id: formData.projectId,
         csv_data: csvData.map(row => ({
           context_prompt: row['Context Prompt'] || '',
           initial_reaction: row['Initial Reaction'] || '',
@@ -173,7 +175,8 @@ const GenAITraitValidationForm = () => {
     } else {
       // Original form submission
       apiData = {
-        version: formData.version
+        version: formData.version,
+        project_id: formData.projectId
       };
 
       if (formData.version === 'context') {
@@ -1131,6 +1134,20 @@ const GenAITraitValidationForm = () => {
         )}
         <h1>GenAI Trait Validation Form</h1>
         <form onSubmit={handleSubmit} onReset={handleReset}>
+          <div className="form-group">
+            <label htmlFor="projectId">
+              Project ID<span className="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="projectId"
+              name="projectId"
+              value={formData.projectId}
+              onChange={handleChange}
+              placeholder="Enter Project ID"
+              required
+            />
+          </div>
           <div className="form-group">
             <label htmlFor="version">
               Select Type<span className="required">*</span>
