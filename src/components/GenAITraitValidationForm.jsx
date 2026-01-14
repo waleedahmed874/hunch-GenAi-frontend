@@ -223,7 +223,7 @@ const GenAITraitValidationForm = () => {
       if (error.message === 'Failed to fetch') {
         errorMessage = 'Failed to connect to the API server. Please ensure:\n\n' +
           '1. The backend server is running on http://localhost:8000\n' +
-          '2. The server has CORS enabled to accept requests from http://localhost:3000\n' +
+          '2. The server has CORS enabled to accept requests from https://hunchgenaitest-320866101884.us-central1.run.app\n' +
           '3. The /batch_classify endpoint is accessible';
       }
 
@@ -441,11 +441,84 @@ const GenAITraitValidationForm = () => {
     document.body.removeChild(link);
   };
 
-  const handleDeleteAll = async () => {
-    if (!window.confirm('Are you sure you want to delete all data from Traits Database? This action cannot be undone.')) {
-      return;
-    }
+  const handleStatusToggle = async (id, currentStatus) => {
+    const isCurrentlyReviewed = Boolean(currentStatus);
+    const newStatus = !isCurrentlyReviewed;
+    console.log(`Toggling status for ${id}: ${isCurrentlyReviewed} -> ${newStatus}`);
 
+    const updateItems = (items, status) => {
+      if (!Array.isArray(items)) return items;
+      return items.map(item => {
+        if (String(item._id) === String(id)) {
+          return { ...item, isReviewed: status };
+        }
+        return item;
+      });
+    };
+
+    // Robust state updates
+    setTableData(prev => updateItems(prev, newStatus));
+
+    setApiResponse(prev => {
+      if (!prev) return prev;
+      if (Array.isArray(prev)) return updateItems(prev, newStatus);
+      if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateItems(prev.data, newStatus) };
+      if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateItems(prev.results, newStatus) };
+      return prev;
+    });
+
+    try {
+      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: id, isReviewed: newStatus })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Status update result:', result);
+
+      if (result.success && result.data) {
+        const finalUpdate = (items) => {
+          if (!Array.isArray(items)) return items;
+          return items.map(item => {
+            if (String(item._id) === String(id)) {
+              const updatedRecord = { ...result.data };
+              if (updatedRecord.isReviewed === undefined) updatedRecord.isReviewed = newStatus;
+              return updatedRecord;
+            }
+            return item;
+          });
+        };
+
+        setTableData(prev => finalUpdate(prev));
+
+        setApiResponse(prev => {
+          if (!prev) return prev;
+          if (Array.isArray(prev)) return finalUpdate(prev);
+          if (prev.data && Array.isArray(prev.data)) return { ...prev, data: finalUpdate(prev.data) };
+          if (prev.results && Array.isArray(prev.results)) return { ...prev, results: finalUpdate(prev.results) };
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      setTableData(prev => updateItems(prev, isCurrentlyReviewed));
+      setApiResponse(prev => {
+        if (!prev) return prev;
+        if (Array.isArray(prev)) return updateItems(prev, isCurrentlyReviewed);
+        if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateItems(prev.data, isCurrentlyReviewed) };
+        if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateItems(prev.results, isCurrentlyReviewed) };
+        return prev;
+      });
+      alert(`Failed to update status: ${error.message}`);
+    }
+  };
+
+  const handleDeleteAll = async () => {
     setIsDeleting(true);
     setTableError(null);
 
@@ -463,7 +536,6 @@ const GenAITraitValidationForm = () => {
 
       // Clear the table data
       setTableData([]);
-      alert('All data deleted successfully!');
     } catch (error) {
       console.error('Error deleting data:', error);
       setTableError(`Failed to delete data: ${error.message}`);
@@ -916,6 +988,9 @@ const GenAITraitValidationForm = () => {
               <th rowSpan="2" style={{
                 color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '120px', borderRight: '1px solid rgba(255,255,255,0.1)'
               }}>Concept Name</th>
+              <th rowSpan="2" style={{
+                color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'center', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '100px', borderRight: '1px solid rgba(255,255,255,0.1)'
+              }}>Review Status</th>
               <th colSpan="3" style={{
                 color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)', borderRight: '1px solid rgba(255,255,255,0.1)'
               }}>Initial Reaction</th>
@@ -985,6 +1060,37 @@ const GenAITraitValidationForm = () => {
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', textAlign: 'center', borderRight: '1px solid #f0f0f0' }}>{rowIndex + 1}</td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.version}</td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.concept_name || '-'}</td>
+                  <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', textAlign: 'center', borderRight: '1px solid #f0f0f0' }}>
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusToggle(item._id, item.isReviewed);
+                      }}
+                      style={{
+                        width: '40px',
+                        height: '20px',
+                        backgroundColor: item.isReviewed ? '#28a745' : '#ccc',
+                        borderRadius: '20px',
+                        position: 'relative',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        margin: '0 auto',
+                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      <div style={{
+                        width: '16px',
+                        height: '16px',
+                        backgroundColor: '#fff',
+                        borderRadius: '50%',
+                        position: 'absolute',
+                        top: '2px',
+                        left: item.isReviewed ? '22px' : '2px',
+                        transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                      }} />
+                    </div>
+                  </td>
 
                   {/* Initial Reaction Columns */}
                   <td onClick={handleIRClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }} title={item.initial_reaction?.text || ''}>
@@ -1414,8 +1520,11 @@ const GenAITraitValidationForm = () => {
                       color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '100px', borderRight: '1px solid rgba(255,255,255,0.1)'
                     }}>Version</th>
                     <th rowSpan="2" style={{
-                      color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '120px', borderRight: '2px solid rgba(255,255,255,0.3)'
+                      color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'left', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '120px', borderRight: '1px solid rgba(255,255,255,0.1)'
                     }}>Concept Name</th>
+                    <th rowSpan="2" style={{
+                      color: '#fff', fontWeight: '600', padding: '12px 8px', textAlign: 'center', fontSize: '12px', borderBottom: '2px solid rgba(255,255,255,0.2)', width: '100px', borderRight: '2px solid rgba(255,255,255,0.3)'
+                    }}>Review Status</th>
                     <th colSpan="3" style={{
                       color: '#fff', fontWeight: '600', padding: '8px', textAlign: 'center', fontSize: '13px', borderBottom: '1px solid rgba(255,255,255,0.2)', borderRight: '2px solid rgba(255,255,255,0.3)'
                     }}>Initial Reaction</th>
@@ -1486,7 +1595,38 @@ const GenAITraitValidationForm = () => {
                       >
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', textAlign: 'center', borderRight: '1px solid #f0f0f0' }}>{rowIndex + 1}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.version}</td>
-                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '2px solid #999' }}>{item.concept_name || '-'}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '12px', color: '#495057', borderRight: '1px solid #f0f0f0' }}>{item.concept_name || '-'}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', textAlign: 'center', borderRight: '2px solid #999' }}>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusToggle(item._id, item.isReviewed);
+                            }}
+                            style={{
+                              width: '40px',
+                              height: '20px',
+                              backgroundColor: item.isReviewed ? '#28a745' : '#ccc',
+                              borderRadius: '20px',
+                              position: 'relative',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              margin: '0 auto',
+                              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              backgroundColor: '#fff',
+                              borderRadius: '50%',
+                              position: 'absolute',
+                              top: '2px',
+                              left: item.isReviewed ? '22px' : '2px',
+                              transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }} />
+                          </div>
+                        </td>
 
                         {/* Initial Reaction Columns */}
                         <td onClick={handleIRClick} style={{ cursor: 'pointer', padding: '10px 8px', borderBottom: '1px solid #e8ecf1', fontSize: '11px', color: '#495057', lineHeight: '1.4', maxWidth: '200px' }} title="Click To Add Initial Reaction Missing Traits Feedback">
@@ -1826,7 +1966,26 @@ const GenAITraitValidationForm = () => {
                     }
 
                     const result = await response.json();
-                    alert('Feedback submitted successfully!');
+
+                    if (result.success && result.updatedDoc) {
+                      const updatedDoc = result.updatedDoc;
+                      const docId = selectedTraitFeedback.documentId;
+
+                      const updateRow = (items) => {
+                        if (!Array.isArray(items)) return items;
+                        return items.map(item => String(item._id) === String(docId) ? updatedDoc : item);
+                      };
+
+                      setTableData(prev => updateRow(prev));
+                      setApiResponse(prev => {
+                        if (!prev) return prev;
+                        if (Array.isArray(prev)) return updateRow(prev);
+                        if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateRow(prev.data) };
+                        if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateRow(prev.results) };
+                        return prev;
+                      });
+                    }
+
                     setSelectedTraitFeedback(null);
                     setFeedbackText('');
                     setIsTraitValidationIncorrect(false);
@@ -2178,7 +2337,26 @@ const GenAITraitValidationForm = () => {
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                     const result = await response.json();
-                    alert('Feedback submitted successfully!');
+
+                    if (result.success && result.updatedDoc) {
+                      const updatedDoc = result.updatedDoc;
+                      const docId = selectedRowForFeedback.id.split('_')[0];
+
+                      const updateRow = (items) => {
+                        if (!Array.isArray(items)) return items;
+                        return items.map(item => String(item._id) === String(docId) ? updatedDoc : item);
+                      };
+
+                      setTableData(prev => updateRow(prev));
+                      setApiResponse(prev => {
+                        if (!prev) return prev;
+                        if (Array.isArray(prev)) return updateRow(prev);
+                        if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateRow(prev.data) };
+                        if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateRow(prev.results) };
+                        return prev;
+                      });
+                    }
+
                     setSelectedRowForFeedback(null);
                     setFeedbackText('');
                     setSelectedTraitsFromList([]);
