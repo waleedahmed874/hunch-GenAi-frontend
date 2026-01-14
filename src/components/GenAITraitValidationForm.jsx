@@ -13,7 +13,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTraits(true);
       setTraitsError(null);
       try {
-        const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits`);
+        const response = await fetch(`http://localhost:3000/api/traits`);
         if (!response.ok) throw new Error(`Failed: ${response.status}`);
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
@@ -186,7 +186,7 @@ const GenAITraitValidationForm = () => {
     }
 
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/process`, {
+      const response = await fetch(`http://localhost:3000/api/traits/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -254,14 +254,21 @@ const GenAITraitValidationForm = () => {
     const originalTraits = reactionData.traits || [];
     const genAiRecords = reactionData.genAiRecords || [];
 
-    // Create a map of trait names to their scores
+    // Create a map of trait names to their scores and details
     const traitMap = new Map();
     genAiRecords.forEach(record => {
       const llmScore = record.llmScore || 0;
       const genAiScore = record.genAiSays?.score || 0;
+      const finalScore = record.finalScore || 0;
+      const feedback = record.feedback || record.genAiSays?.feedback || '';
+      const action = record.action || '';
+
       traitMap.set(record.traitTitle, {
         llmScore,
-        genAiScore
+        genAiScore,
+        finalScore,
+        feedback,
+        action
       });
     });
 
@@ -269,16 +276,21 @@ const GenAITraitValidationForm = () => {
     const addedTraits = [];
     const removedTraits = [];
     const unchangedTraits = [];
+    const llmTraits = [];
+    const genAiTraits = [];
 
     // Check all traits in genAiRecords
-    traitMap.forEach((scores, traitName) => {
-      if (scores.llmScore === 1 && scores.genAiScore === 1) {
+    traitMap.forEach((data, traitName) => {
+      if (data.llmScore === 1) llmTraits.push(traitName);
+      if (data.genAiScore === 1) genAiTraits.push(traitName);
+
+      if (data.llmScore === 1 && data.genAiScore === 1) {
         // Unchanged - was in original and GenAI confirmed
         unchangedTraits.push(traitName);
-      } else if (scores.llmScore === 1 && scores.genAiScore === 0) {
+      } else if (data.llmScore === 1 && data.genAiScore === 0) {
         // Removed - was in original but GenAI says no
         removedTraits.push(traitName);
-      } else if (scores.llmScore === 0 && scores.genAiScore === 1) {
+      } else if (data.llmScore === 0 && data.genAiScore === 1) {
         // Added - wasn't in original but GenAI says yes
         addedTraits.push(traitName);
       }
@@ -289,18 +301,42 @@ const GenAITraitValidationForm = () => {
       if (!traitMap.has(traitName)) {
         // Trait in original but not analyzed by GenAI
         unchangedTraits.push(traitName);
+        llmTraits.push(traitName);
       }
     });
 
+    const formatDetailed = (traitNames) => {
+      return traitNames
+        .filter(name => {
+          const data = traitMap.get(name);
+          const hasFeedback = data && data.feedback && data.feedback.trim() !== '';
+          const isScoreChanged = data && data.action === 'Score change via feedback';
+          return hasFeedback || isScoreChanged;
+        })
+        .map(name => {
+          const data = traitMap.get(name);
+          const fb = (data.feedback || '').replace(/\"/g, '""');
+          const act = (data.action || '').replace(/\"/g, '""');
+          return `${name} (LLM: ${data.llmScore}, GenAI: ${data.genAiScore}, Final: ${data.finalScore}, Action: ${act}, Feedback: ${fb})`;
+        }).join('; ');
+    };
+
+    const allTraitsDetailed = [
+      formatDetailed(addedTraits),
+      formatDetailed(removedTraits),
+      formatDetailed(unchangedTraits)
+    ].filter(s => s !== '').join('; ');
+
     return {
-      originalTraits: originalTraits.join('; '),
-      addedTraits: addedTraits.join('; '),
-      removedTraits: removedTraits.join('; '),
-      unchangedTraits: unchangedTraits.join('; '),
+      llmTraits: Array.from(new Set(llmTraits)).join('; '),
+      genAiTraits: Array.from(new Set(genAiTraits)).join('; '),
+      removedTraits: Array.from(new Set(removedTraits)).join('; '),
+      allTraitsDetailed: allTraitsDetailed,
       hasChanges: addedTraits.length > 0 || removedTraits.length > 0,
       totalOriginal: originalTraits.length,
       totalAdded: addedTraits.length,
-      totalRemoved: removedTraits.length
+      totalRemoved: removedTraits.length,
+      traitMap: traitMap
     };
   };
 
@@ -319,110 +355,76 @@ const GenAITraitValidationForm = () => {
 
     // Prepare CSV data
     const csvRows = [];
+    const irTraitTitles = possibleTraits.filter(t => t.initialReactionEnabled).map(t => t.title);
+    const cpTraitTitles = possibleTraits.filter(t => t.contextPromptEnabled).map(t => t.title);
 
     // CSV Headers
     const headers = [
-      'Document ID',
-      'Version',
-      'Type',
-      'Text',
-      'Original Traits',
-      'GenAI Made Changes',
-      'Traits Added',
-      'Added Traits Feedback',
-      'Traits Removed',
-      'Removed Traits Feedback',
-      'Unchanged Traits',
-      'Unchanged Traits Feedback',
-      'Total Original',
-      'Total Added',
-      'Total Removed'
+      'Project ID',
+      'Hunch ID',
+      'Concept Name',
+      'Initial Reaction',
+      'Context Prompt'
     ];
+
+    // Add IR traits to headers
+    irTraitTitles.forEach(title => {
+      headers.push(`"${title} Hunch Score"`);
+      headers.push(`"${title} Gen Ai Score"`);
+      headers.push(`"${title} Feedback"`);
+    });
+
+    // Add CP traits to headers
+    cpTraitTitles.forEach(title => {
+      headers.push(`"${title} Hunch Score"`);
+      headers.push(`"${title} Gen Ai Score"`);
+      headers.push(`"${title} Feedback"`);
+    });
+
     csvRows.push(headers.join(','));
-
-    // Helper: get feedback string from feedback array filtered by shouldExist
-    function getFeedbackByShouldExist(feedbackArray, shouldExistValue) {
-      if (!Array.isArray(feedbackArray)) return '';
-      return feedbackArray
-        .filter(fb => fb.shouldExist === shouldExistValue)
-        .map(fb => {
-          const feedbackText = fb.text ? fb.text.replace(/\"/g, '"') : '';
-          return `${fb.trait} (feedback: ${feedbackText}, shouldExist: ${fb.shouldExist})`;
-        })
-        .join('; ');
-    }
-
-    // Helper: get feedback string for unchanged traits (no shouldExist or null)
-    function getUnchangedFeedback(feedbackArray) {
-      if (!Array.isArray(feedbackArray)) return '';
-      return feedbackArray
-        .filter(fb => fb.shouldExist === undefined || fb.shouldExist === null)
-        .map(fb => {
-          const feedbackText = fb.text ? fb.text.replace(/\"/g, '"') : '';
-          return `${fb.trait} (feedback: ${feedbackText})`;
-        })
-        .join('; ');
-    }
 
     // Process each document
     tableData.forEach((item) => {
-      // Process Initial Reaction
-      if (item.initial_reaction) {
-        const analysis = analyzeTraits(item, 'initial_reaction');
-        const feedbackArray = item.initial_reaction.feedback || [];
-        if (analysis) {
-          const addedFeedback = getFeedbackByShouldExist(feedbackArray, true);
-          const removedFeedback = getFeedbackByShouldExist(feedbackArray, false);
-          const unchangedFeedback = getUnchangedFeedback(feedbackArray);
-          const row = [
-            `"${item._id || ''}"`,
-            `"${item.version || ''}"`,
-            `"INITIAL_REACTION"`,
-            `"${(item.initial_reaction.text || '').replace(/\"/g, '"')}"`,
-            `"${analysis.originalTraits}"`,
-            `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
-            `"${analysis.addedTraits}"`,
-            `"${addedFeedback}"`,
-            `"${analysis.removedTraits}"`,
-            `"${removedFeedback}"`,
-            `"${analysis.unchangedTraits}"`,
-            `"${unchangedFeedback}"`,
-            analysis.totalOriginal,
-            analysis.totalAdded,
-            analysis.totalRemoved
-          ];
-          csvRows.push(row.join(','));
-        }
-      }
+      const analysisIR = analyzeTraits(item, 'initial_reaction');
+      const analysisCP = analyzeTraits(item, 'context_prompt');
 
-      // Process Context Prompt
-      if (item.context_prompt) {
-        const analysis = analyzeTraits(item, 'context_prompt');
-        const feedbackArray = item.context_prompt.feedback || [];
-        if (analysis) {
-          const addedFeedback = getFeedbackByShouldExist(feedbackArray, true);
-          const removedFeedback = getFeedbackByShouldExist(feedbackArray, false);
-          const unchangedFeedback = getUnchangedFeedback(feedbackArray);
-          const row = [
-            `"${item._id || ''}"`,
-            `"${item.version || ''}"`,
-            `"CONTEXT_PROMPT"`,
-            `"${(item.context_prompt.text || '').replace(/\"/g, '"')}"`,
-            `"${analysis.originalTraits}"`,
-            `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
-            `"${analysis.addedTraits}"`,
-            `"${addedFeedback}"`,
-            `"${analysis.removedTraits}"`,
-            `"${removedFeedback}"`,
-            `"${analysis.unchangedTraits}"`,
-            `"${unchangedFeedback}"`,
-            analysis.totalOriginal,
-            analysis.totalAdded,
-            analysis.totalRemoved
-          ];
-          csvRows.push(row.join(','));
+      const row = [
+        `"${item.project_id || ''}"`,
+        `"${item.hunch_id || ''}"`,
+        `"${item.concept_name || ''}"`,
+        `"${(item.initial_reaction?.text || '').replace(/\"/g, '""')}"`,
+        `"${(item.context_prompt?.text || '').replace(/\"/g, '""')}"`
+      ];
+
+      // Add IR trait data
+      irTraitTitles.forEach(title => {
+        const traitData = analysisIR?.traitMap.get(title);
+        if (traitData) {
+          row.push(traitData.llmScore);
+          row.push(traitData.genAiScore);
+          row.push(`"${(traitData.feedback || '').replace(/\"/g, '""')}"`);
+        } else {
+          row.push('0');
+          row.push('0');
+          row.push('""');
         }
-      }
+      });
+
+      // Add CP trait data
+      cpTraitTitles.forEach(title => {
+        const traitData = analysisCP?.traitMap.get(title);
+        if (traitData) {
+          row.push(traitData.llmScore);
+          row.push(traitData.genAiScore);
+          row.push(`"${(traitData.feedback || '').replace(/\"/g, '""')}"`);
+        } else {
+          row.push('0');
+          row.push('0');
+          row.push('""');
+        }
+      });
+
+      csvRows.push(row.join(','));
     });
 
     // Create CSV content
@@ -450,7 +452,7 @@ const GenAITraitValidationForm = () => {
     setTableError(null);
 
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`, {
+      const response = await fetch(`http://localhost:3000/api/traits/db`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -480,7 +482,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTable(true);
       setTableError(null);
       try {
-        const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
+        const response = await fetch(`http://localhost:3000/api/traits/db`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -506,7 +508,7 @@ const GenAITraitValidationForm = () => {
     setIsLoadingTable(true);
     setTableError(null);
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
+      const response = await fetch(`http://localhost:3000/api/traits/db`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -1806,7 +1808,7 @@ const GenAITraitValidationForm = () => {
                   setIsSubmittingFeedback(true);
                   try {
                     // TODO: Replace with actual API endpoint
-                    const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback`, {
+                    const response = await fetch(`http://localhost:3000/api/traits/feedback`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -2165,7 +2167,7 @@ const GenAITraitValidationForm = () => {
                       shouldExist: shouldExist
                     }));
 
-                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/store-feedback', {
+                    const response = await fetch('http://localhost:3000/api/traits/store-feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
