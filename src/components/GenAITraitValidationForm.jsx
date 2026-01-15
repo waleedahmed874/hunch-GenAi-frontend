@@ -1803,6 +1803,51 @@ const GenAITraitValidationForm = () => {
               </button>
             </div>
 
+            <div style={{ marginBottom: '20px', overflowX: 'auto' }}>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#666', fontWeight: '600' }}>Decision criteria</h4>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #eee' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8f9fa' }}>
+                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>LLM Score</th>
+                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>GenAI Says</th>
+                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Confidence</th>
+                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Action</th>
+                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Any</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No change</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Both agree, everything is correct.</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>&gt; 0.90</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Score removed</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>GenAI is very confident that LLM was incorrect.</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Review required</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>GenAI disagrees but is not confident.</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>&gt; 0.90</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Score added</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>GenAI is very confident that the trait was missing.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <div style={{ marginBottom: '15px' }}>
               <strong style={{ color: '#666' }}>Status:</strong>
               <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
