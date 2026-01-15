@@ -818,6 +818,12 @@ const GenAITraitValidationForm = () => {
         // Green Plus Sign Icon, Green Font
         icon = '+';
         color = 'green';
+      } else if (llmScore === 0 && genAiScore === 0 &&
+        (String(record.action || "").toLowerCase().includes("score change via feedback") ||
+          record.genAiSays?.validationIncorrect === true)) {
+        // Grey color for traits changed via feedback
+        icon = '•';
+        color = 'grey';
       } else {
         // llmScore 0, genAiScore 0 - not listed
         return null;
@@ -1117,8 +1123,8 @@ const GenAITraitValidationForm = () => {
                   </td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', borderRight: '1px solid #f0f0f0' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                        irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                      {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').length > 0 ? (
+                        irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').map((trait, index) => (
                           <span key={index}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1158,8 +1164,8 @@ const GenAITraitValidationForm = () => {
                   </td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                        cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                      {cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').length > 0 ? (
+                        cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').map((trait, index) => (
                           <span key={index}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1655,8 +1661,8 @@ const GenAITraitValidationForm = () => {
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', borderRight: '2px solid #999' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                              irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                            {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').length > 0 ? (
+                              irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').map((trait, index) => (
                                 <span key={index}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1695,8 +1701,8 @@ const GenAITraitValidationForm = () => {
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).length > 0 ? (
-                              cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0)).map((trait, index) => (
+                            {cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').length > 0 ? (
+                              cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').map((trait, index) => (
                                 <span key={index}
                                   onClick={(e) => {
                                     e.stopPropagation();
