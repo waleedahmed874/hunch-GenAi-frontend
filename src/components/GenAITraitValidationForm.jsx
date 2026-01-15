@@ -258,10 +258,10 @@ const GenAITraitValidationForm = () => {
     const traitMap = new Map();
     genAiRecords.forEach(record => {
       const llmScore = record.llmScore || 0;
-      const genAiScore = record.genAiSays?.score || 0;
+      const finalScore = record.finalScore || 0;
       traitMap.set(record.traitTitle, {
         llmScore,
-        genAiScore
+        finalScore
       });
     });
 
@@ -272,13 +272,13 @@ const GenAITraitValidationForm = () => {
 
     // Check all traits in genAiRecords
     traitMap.forEach((scores, traitName) => {
-      if (scores.llmScore === 1 && scores.genAiScore === 1) {
+      if (scores.llmScore === 1 && scores.finalScore === 1) {
         // Unchanged - was in original and GenAI confirmed
         unchangedTraits.push(traitName);
-      } else if (scores.llmScore === 1 && scores.genAiScore === 0) {
+      } else if (scores.llmScore === 1 && scores.finalScore === 0) {
         // Removed - was in original but GenAI says no
         removedTraits.push(traitName);
-      } else if (scores.llmScore === 0 && scores.genAiScore === 1) {
+      } else if (scores.llmScore === 0 && scores.finalScore === 1) {
         // Added - wasn't in original but GenAI says yes
         addedTraits.push(traitName);
       }
@@ -777,7 +777,7 @@ const GenAITraitValidationForm = () => {
     if (!genAiRecord) return { color: 'grey', showTooltip: false };
 
     const isInReview = item.reviewTags?.includes(traitName);
-    const isGreen = genAiRecord.llmScore === 0 && genAiRecord.genAiSays?.score === 1;
+    const isGreen = genAiRecord.llmScore === 0 && genAiRecord.finalScore === 1;
 
     if (isInReview) {
       return {
@@ -799,33 +799,39 @@ const GenAITraitValidationForm = () => {
 
     return genAiRecords.map(record => {
       const llmScore = record.llmScore || 0;
-      const genAiScore = record.genAiSays?.score || 0;
+      const finalScore = record.finalScore || 0;
 
       let icon = '';
       let color = '';
       let displayName = record.traitTitle;
 
-      if (llmScore === 1 && genAiScore === 1) {
-        // Black checkbox icon, black font
-        icon = '✓';
-        color = 'black';
-      } else if (llmScore === 1 && genAiScore === 0) {
+      if (llmScore === 1 && finalScore === 1) {
+        if (String(record.action || "").toLowerCase().includes("human review required")) {
+          // Yellow color for human review required
+          icon = '⚠';
+          color = '#d97706'; // Amber/Yellow
+        } else {
+          // Black checkbox icon, black font
+          icon = '✓';
+          color = 'black';
+        }
+      } else if (llmScore === 1 && finalScore === 0) {
         // Red X Icon, Red font for trait name in parentheses
         icon = '✗';
         color = 'red';
         displayName = `(${record.traitTitle})`;
-      } else if (llmScore === 0 && genAiScore === 1) {
+      } else if (llmScore === 0 && finalScore === 1) {
         // Green Plus Sign Icon, Green Font
         icon = '+';
         color = 'green';
-      } else if (llmScore === 0 && genAiScore === 0 &&
+      } else if (llmScore === 0 && finalScore === 0 &&
         (String(record.action || "").toLowerCase().includes("score change via feedback") ||
           record.genAiSays?.validationIncorrect === true)) {
         // Grey color for traits changed via feedback
         icon = '•';
         color = 'grey';
       } else {
-        // llmScore 0, genAiScore 0 - not listed
+        // llmScore 0, finalScore 0 - not listed
         return null;
       }
 
@@ -838,9 +844,9 @@ const GenAITraitValidationForm = () => {
         confidence: record.genAiSays?.confidence || 0,
         present: record.genAiSays?.present || false,
         llmScore: llmScore,
-        genAiScore: genAiScore,
+        finalScore: finalScore,
         action: record.action || 'No change',
-        finalScore: record.finalScore || 0,
+        genAiScore: record.genAiSays?.score || 0,
         feedback: record.feedback || record.genAiSays?.feedback || '',
         _id: record._id
       };
@@ -1123,8 +1129,8 @@ const GenAITraitValidationForm = () => {
                   </td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', borderRight: '1px solid #f0f0f0' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').length > 0 ? (
-                        irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').map((trait, index) => (
+                      {irTraits.filter(t => t.finalScore === 1 || (t.llmScore === 1 && t.finalScore === 0) || t.color === 'grey' || t.color === '#d97706').length > 0 ? (
+                        irTraits.filter(t => t.finalScore === 1 || (t.llmScore === 1 && t.finalScore === 0) || t.color === 'grey' || t.color === '#d97706').map((trait, index) => (
                           <span key={index}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1133,7 +1139,7 @@ const GenAITraitValidationForm = () => {
                             }}
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
-                              background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : '#f0fff4',
+                              background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : trait.color === 'grey' ? '#f1f3f5' : trait.color === '#d97706' ? '#fffbeb' : '#f0fff4',
                               color: trait.color, border: `1px solid ${trait.color}`, cursor: 'pointer'
                             }} title={trait.rationale}>
                             <span>{trait.icon}</span>
@@ -1164,8 +1170,8 @@ const GenAITraitValidationForm = () => {
                   </td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').length > 0 ? (
-                        cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').map((trait, index) => (
+                      {cpTraits.filter(t => t.finalScore === 1 || (t.llmScore === 1 && t.finalScore === 0) || t.color === 'grey' || t.color === '#d97706').length > 0 ? (
+                        cpTraits.filter(t => t.finalScore === 1 || (t.llmScore === 1 && t.finalScore === 0) || t.color === 'grey' || t.color === '#d97706').map((trait, index) => (
                           <span key={index}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1173,7 +1179,7 @@ const GenAITraitValidationForm = () => {
                             }}
                             style={{
                               display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
-                              background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : '#f0fff4',
+                              background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : trait.color === 'grey' ? '#f1f3f5' : trait.color === '#d97706' ? '#fffbeb' : '#f0fff4',
                               color: trait.color, border: `1px solid ${trait.color}`, cursor: 'pointer'
                             }} title={trait.rationale}>
                             <span>{trait.icon}</span>
@@ -1661,8 +1667,8 @@ const GenAITraitValidationForm = () => {
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1', borderRight: '2px solid #999' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').length > 0 ? (
-                              irTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').map((trait, index) => (
+                            {irTraits.filter(t => t.finalScore === 1 || (t.llmScore === 1 && t.finalScore === 0) || t.color === 'grey' || t.color === '#d97706').length > 0 ? (
+                              irTraits.filter(t => t.finalScore === 1 || (t.llmScore === 1 && t.finalScore === 0) || t.color === 'grey' || t.color === '#d97706').map((trait, index) => (
                                 <span key={index}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1670,7 +1676,7 @@ const GenAITraitValidationForm = () => {
                                   }}
                                   style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
-                                    background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : '#f0fff4',
+                                    background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : trait.color === 'grey' ? '#f1f3f5' : trait.color === '#d97706' ? '#fffbeb' : '#f0fff4',
                                     color: trait.color, border: `1px solid ${trait.color}`, cursor: 'pointer'
                                   }} title={trait.rationale}>
                                   <span>{trait.icon}</span>
@@ -1701,8 +1707,8 @@ const GenAITraitValidationForm = () => {
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').length > 0 ? (
-                              cpTraits.filter(t => t.genAiScore === 1 || (t.llmScore === 1 && t.genAiScore === 0) || t.color === 'grey').map((trait, index) => (
+                            {cpTraits.filter(t => t.finalScore === 1 || (t.llmScore === 1 && t.finalScore === 0) || t.color === 'grey' || t.color === '#d97706').length > 0 ? (
+                              cpTraits.filter(t => t.finalScore === 1 || (t.llmScore === 1 && t.finalScore === 0) || t.color === 'grey' || t.color === '#d97706').map((trait, index) => (
                                 <span key={index}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -1710,7 +1716,7 @@ const GenAITraitValidationForm = () => {
                                   }}
                                   style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
-                                    background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : '#f0fff4',
+                                    background: trait.color === 'black' ? '#f8f9fa' : trait.color === 'red' ? '#fff5f5' : trait.color === 'grey' ? '#f1f3f5' : trait.color === '#d97706' ? '#fffbeb' : '#f0fff4',
                                     color: trait.color, border: `1px solid ${trait.color}`, cursor: 'pointer'
                                   }} title={trait.rationale}>
                                   <span>{trait.icon}</span>
@@ -1808,13 +1814,14 @@ const GenAITraitValidationForm = () => {
                   color: selectedTraitFeedback.color,
                   fontWeight: 'bold'
                 }}>
-                  {selectedTraitFeedback.llmScore === 1 && selectedTraitFeedback.genAiScore === 1 && '✓ Confirmed'}
-                  {selectedTraitFeedback.llmScore === 1 && selectedTraitFeedback.genAiScore === 0 && '✗ Removed'}
-                  {selectedTraitFeedback.llmScore === 0 && selectedTraitFeedback.genAiScore === 1 && '+ Added'}
+                  {selectedTraitFeedback.llmScore === 1 && selectedTraitFeedback.finalScore === 1 && '✓ Confirmed'}
+                  {selectedTraitFeedback.llmScore === 1 && selectedTraitFeedback.finalScore === 0 && '✗ Removed'}
+                  {selectedTraitFeedback.llmScore === 0 && selectedTraitFeedback.finalScore === 1 && '+ Added'}
                 </span>
                 <span style={{ color: '#666', fontSize: '14px' }}>
                   (Hunch LLM: {selectedTraitFeedback.llmScore === 1 ? 'Yes' : 'No'},
-                  GenAI: {selectedTraitFeedback.genAiScore === 1 ? 'Yes' : 'No'})
+                  GenAI Score: {selectedTraitFeedback.genAiScore === 1 ? 'Yes' : 'No'},
+                  Final Score: {selectedTraitFeedback.finalScore === 1 ? 'Yes' : 'No'})
                 </span>
               </div>
             </div>
