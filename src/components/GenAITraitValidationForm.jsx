@@ -450,7 +450,7 @@ const GenAITraitValidationForm = () => {
       if (!Array.isArray(items)) return items;
       return items.map(item => {
         if (String(item._id) === String(id)) {
-          return { ...item, isReviewed: status };
+          return { ...item, isReviewed: status, review_status: status };
         }
         return item;
       });
@@ -487,7 +487,10 @@ const GenAITraitValidationForm = () => {
           return items.map(item => {
             if (String(item._id) === String(id)) {
               const updatedRecord = { ...result.data };
-              if (updatedRecord.isReviewed === undefined) updatedRecord.isReviewed = newStatus;
+              if (updatedRecord.review_status === undefined && updatedRecord.isReviewed === undefined) {
+                updatedRecord.review_status = newStatus;
+                updatedRecord.isReviewed = newStatus;
+              }
               return updatedRecord;
             }
             return item;
@@ -1064,12 +1067,12 @@ const GenAITraitValidationForm = () => {
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleStatusToggle(item._id, item.isReviewed);
+                        handleStatusToggle(item._id, item.review_status || item.isReviewed);
                       }}
                       style={{
                         width: '40px',
                         height: '20px',
-                        backgroundColor: item.isReviewed ? '#28a745' : '#ccc',
+                        backgroundColor: (item.review_status || item.isReviewed) ? '#28a745' : '#ccc',
                         borderRadius: '20px',
                         position: 'relative',
                         cursor: 'pointer',
@@ -1085,7 +1088,7 @@ const GenAITraitValidationForm = () => {
                         borderRadius: '50%',
                         position: 'absolute',
                         top: '2px',
-                        left: item.isReviewed ? '22px' : '2px',
+                        left: (item.review_status || item.isReviewed) ? '22px' : '2px',
                         transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                       }} />
@@ -1600,12 +1603,12 @@ const GenAITraitValidationForm = () => {
                           <div
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleStatusToggle(item._id, item.isReviewed);
+                              handleStatusToggle(item._id, item.review_status || item.isReviewed);
                             }}
                             style={{
                               width: '40px',
                               height: '20px',
-                              backgroundColor: item.isReviewed ? '#28a745' : '#ccc',
+                              backgroundColor: (item.review_status || item.isReviewed) ? '#28a745' : '#ccc',
                               borderRadius: '20px',
                               position: 'relative',
                               cursor: 'pointer',
@@ -1621,7 +1624,7 @@ const GenAITraitValidationForm = () => {
                               borderRadius: '50%',
                               position: 'absolute',
                               top: '2px',
-                              left: item.isReviewed ? '22px' : '2px',
+                              left: (item.review_status || item.isReviewed) ? '22px' : '2px',
                               transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
                               boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                             }} />
