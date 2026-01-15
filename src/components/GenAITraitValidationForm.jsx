@@ -581,7 +581,7 @@ const GenAITraitValidationForm = () => {
     setIsLoadingTable(true);
     setTableError(null);
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
+      const response = await fetch(`https://localhost:3000/api/traits/db`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -1024,6 +1024,7 @@ const GenAITraitValidationForm = () => {
                   type: 'INITIAL_REACTION',
                   text: item.initial_reaction?.text || '',
                   traits: irTraits,
+                  feedback: item.initial_reaction?.feedback || [],
                   timestamp: Date.now()
                 };
                 console.log('Sending Payload (IR):', payload);
@@ -1039,6 +1040,7 @@ const GenAITraitValidationForm = () => {
                   type: 'CONTEXT_PROMPT',
                   text: item.context_prompt?.text || '',
                   traits: cpTraits,
+                  feedback: item.context_prompt?.feedback || [],
                   timestamp: Date.now()
                 };
                 console.log('Sending Payload (CP):', payload);
@@ -1558,6 +1560,7 @@ const GenAITraitValidationForm = () => {
                         type: 'INITIAL_REACTION',
                         text: item.initial_reaction?.text || '',
                         traits: irTraits,
+                        feedback: item.initial_reaction?.feedback || [],
                         timestamp: Date.now()
                       };
                       console.log('Sending Payload (IR - DB Table):', payload);
@@ -1573,6 +1576,7 @@ const GenAITraitValidationForm = () => {
                         type: 'CONTEXT_PROMPT',
                         text: item.context_prompt?.text || '',
                         traits: cpTraits,
+                        feedback: item.context_prompt?.feedback || [],
                         timestamp: Date.now()
                       };
                       console.log('Sending Payload (CP - DB Table):', payload);
@@ -1976,7 +1980,13 @@ const GenAITraitValidationForm = () => {
 
                       const updateRow = (items) => {
                         if (!Array.isArray(items)) return items;
-                        return items.map(item => String(item._id) === String(docId) ? updatedDoc : item);
+                        return items.map((item, idx) => {
+                          const itemId = item._id || item.id;
+                          if (itemId && String(itemId) === String(docId)) return updatedDoc;
+                          // Fallback to index matching if docId looks like an index and item has no _id
+                          if (!itemId && String(idx) === String(docId)) return updatedDoc;
+                          return item;
+                        });
                       };
 
                       setTableData(prev => updateRow(prev));
@@ -2084,10 +2094,50 @@ const GenAITraitValidationForm = () => {
                 maxHeight: '150px',
                 overflowY: 'auto'
               }}>
-                {console.log('Popup Render - Row:', selectedRowForFeedback)}
                 {selectedRowForFeedback.text || <span style={{ color: '#999' }}>No text available</span>}
               </div>
             </div>
+
+            {selectedRowForFeedback.feedback && selectedRowForFeedback.feedback.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                <strong style={{ display: 'block', marginBottom: '8px', color: '#333' }}>Existing Feedback:</strong>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  padding: '4px'
+                }}>
+                  {selectedRowForFeedback.feedback.map((fb, idx) => (
+                    <div key={idx} style={{
+                      padding: '10px',
+                      backgroundColor: '#fff',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 'bold', color: '#667eea' }}>{fb.trait}</span>
+                        <span style={{
+                          fontSize: '11px',
+                          padding: '2px 6px',
+                          borderRadius: '10px',
+                          backgroundColor: fb.shouldExist ? '#d4edda' : '#f8d7da',
+                          color: fb.shouldExist ? '#155724' : '#721c24'
+                        }}>
+                          {fb.shouldExist ? 'Should Exist' : 'Should Not Exist'}
+                        </span>
+                      </div>
+                      <div style={{ color: '#555', fontStyle: fb.text ? 'normal' : 'italic' }}>
+                        {fb.text || 'No feedback text provided'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
@@ -2347,7 +2397,13 @@ const GenAITraitValidationForm = () => {
 
                       const updateRow = (items) => {
                         if (!Array.isArray(items)) return items;
-                        return items.map(item => String(item._id) === String(docId) ? updatedDoc : item);
+                        return items.map((item, idx) => {
+                          const itemId = item._id || item.id;
+                          if (itemId && String(itemId) === String(docId)) return updatedDoc;
+                          // Fallback to index matching if docId looks like an index and item has no _id
+                          if (!itemId && String(idx) === String(docId)) return updatedDoc;
+                          return item;
+                        });
                       };
 
                       setTableData(prev => updateRow(prev));
