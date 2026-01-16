@@ -62,9 +62,11 @@ const GenAITraitValidationForm = () => {
 
   useEffect(() => {
     if (selectedTraitFeedback) {
+      setIsTraitValidationIncorrect(!!selectedTraitFeedback.isTraitValidationIncorrect);
       setFeedbackText(selectedTraitFeedback.feedback || '');
     } else {
       setFeedbackText('');
+      setIsTraitValidationIncorrect(false);
     }
   }, [selectedTraitFeedback]);
   const wsRef = useRef(null);
@@ -848,6 +850,7 @@ const GenAITraitValidationForm = () => {
         action: record.action || 'No change',
         genAiScore: record.genAiSays?.score || 0,
         feedback: record.feedback || record.genAiSays?.feedback || '',
+        isTraitValidationIncorrect: record.isTraitValidationIncorrect || record.genAiSays?.validationIncorrect,
         _id: record._id
       };
     }).filter(trait => trait !== null);
@@ -2080,7 +2083,7 @@ const GenAITraitValidationForm = () => {
                   opacity: isSubmittingFeedback ? 0.6 : 1
                 }}
               >
-                {isSubmittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                {isSubmittingFeedback ? 'Submitting...' : 'Submit Correction'}
               </button>
             </div>
           </div>
