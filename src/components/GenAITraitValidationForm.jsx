@@ -1814,38 +1814,52 @@ const GenAITraitValidationForm = () => {
                     <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>LLM Score</th>
                     <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>GenAI Says</th>
                     <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Confidence</th>
-                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Action</th>
-                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Reason</th>
+                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Action / Status</th>
+                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>UI Visual Cue</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
                     <td style={{ border: '1px solid #eee', padding: '6px' }}>Any</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No change</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Both agree, everything is correct.</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Agree (1)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Grey fill + ✅ check‑mark</td>
                   </tr>
                   <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>&gt; 0.90</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Score removed</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>GenAI is very confident that LLM was incorrect.</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Any</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Agree (0)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Grey fill + ✅ check‑mark</td>
                   </tr>
                   <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>≥ 0.80</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Disagree (0)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Red fill + ❌ “X”</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>≥ 0.80</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Disagree (1)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Green fill + ➕ “+”</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
                     <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Review required</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>GenAI disagrees but is not confident.</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Human review required (1 kept)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ⚠️ “!” (review flag)</td>
                   </tr>
                   <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>&gt; 0.90</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Score added</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>GenAI is very confident that the trait was missing.</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Human review required (0 kept)</td>
+                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ⚠️ “!”</td>
                   </tr>
                 </tbody>
               </table>
