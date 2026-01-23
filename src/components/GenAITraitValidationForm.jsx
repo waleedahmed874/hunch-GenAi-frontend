@@ -55,18 +55,19 @@ const GenAITraitValidationForm = () => {
   const [selectedRowForFeedback, setSelectedRowForFeedback] = useState(null);
   const [selectedTraitsFromList, setSelectedTraitsFromList] = useState([]);
   const [shouldExist, setShouldExist] = useState(true);
-  const [isTraitValidationIncorrect, setIsTraitValidationIncorrect] = useState(false);
+  const [isTraitValidationIncorrect, setIsTraitValidationIncorrect] = useState(0);
 
   // WebSocket states
   const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
     if (selectedTraitFeedback) {
-      setIsTraitValidationIncorrect(!!selectedTraitFeedback.isTraitValidationIncorrect);
+
+      setIsTraitValidationIncorrect(selectedTraitFeedback.finalScore === 1 ? 1 : 0);
       setFeedbackText(selectedTraitFeedback.feedback || '');
     } else {
       setFeedbackText('');
-      setIsTraitValidationIncorrect(false);
+      setIsTraitValidationIncorrect(0);
     }
   }, [selectedTraitFeedback]);
   const wsRef = useRef(null);
@@ -942,42 +943,9 @@ const GenAITraitValidationForm = () => {
           gap: '8px'
         }}>
           {/* Initial Reaction Traits */}
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <strong style={{ whiteSpace: 'nowrap', fontSize: '14px', color: '#333', minWidth: '120px' }}>Initial Reaction:</strong>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => (
-                <span key={`ir_${i}`} style={{
-                  background: '#f4f8fa',
-                  border: '1px solid #ececec',
-                  borderRadius: 5,
-                  padding: '2px 8px',
-                  fontSize: '12px',
-                  color: '#444'
-                }}>
-                  {t.title}
-                </span>
-              ))}
-            </div>
-          </div>
 
           {/* Context Prompt Traits */}
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <strong style={{ whiteSpace: 'nowrap', fontSize: '14px', color: '#333', minWidth: '120px' }}>Context Prompt:</strong>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => (
-                <span key={`cp_${i}`} style={{
-                  background: '#f4f8fa',
-                  border: '1px solid #ececec',
-                  borderRadius: 5,
-                  padding: '2px 8px',
-                  fontSize: '12px',
-                  color: '#444'
-                }}>
-                  {t.title}
-                </span>
-              ))}
-            </div>
-          </div>
+
         </div>
         <table className="traits-table" style={{
           width: '100%',
@@ -1457,6 +1425,64 @@ const GenAITraitValidationForm = () => {
               </button>
             </div>
           </div>
+
+          <div className="table-wrapper" style={{ marginBottom: '20px', overflowX: 'auto' }}>
+            <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#666', fontWeight: '600' }}>Decision criteria</h4>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #eee' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8f9fa' }}>
+                  <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>LLM Score</th>
+                  <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>GenAI Says</th>
+                  <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Confidence</th>
+                  <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>UI Visual Cue</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Any</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Grey fill + check‑mark</td>
+                </tr>
+                <tr>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Any</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>
+                    Blank (Trait Absent)
+                    <br />
+                    <span style={{ fontStyle: 'italic', color: '#666' }}>
+                      Note to Human Reviewer: If both Hunch LLM and GenAI are incorrect because an absent trait should be present, click on the row in the dataset in either the Initial Reaction or Context Prompt column. The Missing Trait window will pop-up for you to give corrective feedback.
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>≥ 0.80</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Red fill + ❌</td>
+                </tr>
+                <tr>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>≥ 0.80</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Green fill + ➕ “+”</td>
+                </tr>
+                <tr>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ⚠</td>
+                </tr>
+                <tr>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ⚠</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           {isLoadingTable && <p className="loading-text">Loading data...</p>}
           {tableError && (
             <div className="error-box">
@@ -1465,56 +1491,7 @@ const GenAITraitValidationForm = () => {
           )}
           {!isLoadingTable && !tableError && tableData.length > 0 && (
             <div className="table-wrapper">
-              <div style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 100,
-                backgroundColor: 'white',
-                padding: '10px 5px',
-                borderBottom: '1px solid #eee',
-                marginBottom: '10px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                {/* Initial Reaction Traits */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <strong style={{ whiteSpace: 'nowrap', fontSize: '14px', color: '#333', minWidth: '120px' }}>Initial Reaction:</strong>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {possibleTraits.filter(t => t.initialReactionEnabled).map((t, i) => (
-                      <span key={`ir_${i}`} style={{
-                        background: '#f4f8fa',
-                        border: '1px solid #ececec',
-                        borderRadius: 5,
-                        padding: '2px 8px',
-                        fontSize: '12px',
-                        color: '#444'
-                      }}>
-                        {t.title}
-                      </span>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Context Prompt Traits */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <strong style={{ whiteSpace: 'nowrap', fontSize: '14px', color: '#333', minWidth: '120px' }}>Context Prompt:</strong>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {possibleTraits.filter(t => t.contextPromptEnabled).map((t, i) => (
-                      <span key={`cp_${i}`} style={{
-                        background: '#f4f8fa',
-                        border: '1px solid #ececec',
-                        borderRadius: 5,
-                        padding: '2px 8px',
-                        fontSize: '12px',
-                        color: '#444'
-                      }}>
-                        {t.title}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
               <table className="traits-table" style={{
                 width: '100%',
                 borderCollapse: 'separate',
@@ -1760,7 +1737,7 @@ const GenAITraitValidationForm = () => {
           }}
           onClick={() => {
             setSelectedTraitFeedback(null);
-            setIsTraitValidationIncorrect(false);
+            setIsTraitValidationIncorrect(0);
           }}
         >
           <div
@@ -1786,7 +1763,7 @@ const GenAITraitValidationForm = () => {
               <button
                 onClick={() => {
                   setSelectedTraitFeedback(null);
-                  setIsTraitValidationIncorrect(false);
+                  setIsTraitValidationIncorrect(0);
                 }}
                 style={{
                   background: 'none',
@@ -1806,67 +1783,10 @@ const GenAITraitValidationForm = () => {
               </button>
             </div>
 
-            <div style={{ marginBottom: '20px', overflowX: 'auto' }}>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#666', fontWeight: '600' }}>Decision criteria</h4>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #eee' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8f9fa' }}>
-                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>LLM Score</th>
-                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>GenAI Says</th>
-                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Confidence</th>
-                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>Action / Status</th>
-                    <th style={{ border: '1px solid #eee', padding: '6px', textAlign: 'left' }}>UI Visual Cue</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Any</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Agree (1)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Grey fill + ✅ check‑mark</td>
-                  </tr>
-                  <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Any</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Agree (0)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Grey fill + ✅ check‑mark</td>
-                  </tr>
-                  <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>≥ 0.80</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Disagree (0)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Red fill + ❌ “X”</td>
-                  </tr>
-                  <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>≥ 0.80</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Disagree (1)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Green fill + ➕ “+”</td>
-                  </tr>
-                  <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Human review required (1 kept)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ⚠️ “!” (review flag)</td>
-                  </tr>
-                  <tr>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Human review required (0 kept)</td>
-                    <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ⚠️ “!”</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+
 
             <div style={{ marginBottom: '15px' }}>
-              <strong style={{ color: '#666' }}>Status:</strong>
+              <strong style={{ color: '#666' }}>Result:</strong>
               <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{
                   padding: '4px 12px',
@@ -1881,7 +1801,7 @@ const GenAITraitValidationForm = () => {
                   {selectedTraitFeedback.llmScore === 0 && selectedTraitFeedback.finalScore === 1 && '+ Added'}
                 </span>
                 <span style={{ color: '#666', fontSize: '14px' }}>
-                  (Hunch LLM: {selectedTraitFeedback.llmScore === 1 ? 'Yes' : 'No'},
+                  (Hunch LLM Score: {selectedTraitFeedback.llmScore === 1 ? 'Yes' : 'No'},
                   GenAI Score: {selectedTraitFeedback.genAiScore === 1 ? 'Yes' : 'No'},
                   Final Score: {selectedTraitFeedback.finalScore === 1 ? 'Yes' : 'No'})
                 </span>
@@ -1896,7 +1816,7 @@ const GenAITraitValidationForm = () => {
             </div>
 
             <div style={{ marginBottom: '15px' }}>
-              <strong style={{ color: '#666' }}>Confidence:</strong>
+              <strong style={{ color: '#666' }}>GenAI Score Confidence:</strong>
               <div style={{ marginTop: '5px' }}>
                 <div style={{
                   width: '100%',
@@ -1919,12 +1839,12 @@ const GenAITraitValidationForm = () => {
               </div>
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
+            {/* <div style={{ marginBottom: '15px' }}>
               <strong style={{ color: '#666' }}>GenAI Present:</strong>
               <p style={{ margin: '5px 0 0 0', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
                 {selectedTraitFeedback.present ? 'Yes' : 'No'}
               </p>
-            </div>
+            </div> */}
 
             <div style={{ marginBottom: '15px' }}>
               <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Rationale:</strong>
@@ -1963,40 +1883,25 @@ const GenAITraitValidationForm = () => {
               />
             </div>
 
-            <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                onClick={() => setIsTraitValidationIncorrect(!isTraitValidationIncorrect)}
+            <div style={{ marginBottom: '15px' }}>
+              <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Final Score:</strong>
+              <select
+
+                value={isTraitValidationIncorrect}
+                onChange={(e) => setIsTraitValidationIncorrect(parseInt(e.target.value))}
                 style={{
-                  width: '40px',
-                  height: '22px',
-                  backgroundColor: isTraitValidationIncorrect ? '#28a745' : '#ccc',
-                  borderRadius: '22px',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.3s',
-                  flexShrink: 0
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
                 }}
               >
-                <div
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    backgroundColor: 'white',
-                    borderRadius: '50%',
-                    position: 'absolute',
-                    top: '2px',
-                    left: isTraitValidationIncorrect ? '20px' : '2px',
-                    transition: 'left 0.3s',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                  }}
-                />
-              </div>
-              <label
-                onClick={() => setIsTraitValidationIncorrect(!isTraitValidationIncorrect)}
-                style={{ cursor: 'pointer', color: '#666', fontWeight: 'bold', userSelect: 'none' }}
-              >
-                Trait Validation is Incorrect
-              </label>
+                <option value="" disabled>Select Final Score</option>
+                <option value={1}>1</option>
+                <option value={0}>0</option>
+              </select>
             </div>
 
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -2004,7 +1909,7 @@ const GenAITraitValidationForm = () => {
                 onClick={() => {
                   setSelectedTraitFeedback(null);
                   setFeedbackText('');
-                  setIsTraitValidationIncorrect(false);
+                  setIsTraitValidationIncorrect(0);
                 }}
                 disabled={isSubmittingFeedback}
                 style={{
@@ -2024,8 +1929,8 @@ const GenAITraitValidationForm = () => {
               <button
                 onClick={async () => {
                   if (!selectedTraitFeedback) return;
-                  console.log('Submitting feedback', selectedTraitFeedback);
                   setIsSubmittingFeedback(true);
+
                   try {
                     // TODO: Replace with actual API endpoint
                     const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback`, {
@@ -2076,7 +1981,7 @@ const GenAITraitValidationForm = () => {
 
                     setSelectedTraitFeedback(null);
                     setFeedbackText('');
-                    setIsTraitValidationIncorrect(false);
+                    setIsTraitValidationIncorrect(0);
                   } catch (error) {
                     console.error('Error submitting feedback:', error);
                     alert(`Error submitting feedback: ${error.message}`);
