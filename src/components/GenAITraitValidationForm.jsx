@@ -53,8 +53,8 @@ const GenAITraitValidationForm = () => {
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [selectedRowForFeedback, setSelectedRowForFeedback] = useState(null);
-  const [selectedTraitsFromList, setSelectedTraitsFromList] = useState([]);
-  const [shouldExist, setShouldExist] = useState(true);
+  const [selectedTraitsFromList, setSelectedTraitsFromList] = useState(null);
+  const [shouldExist, setShouldExist] = useState(1);
   const [isTraitValidationIncorrect, setIsTraitValidationIncorrect] = useState(0);
 
   // WebSocket states
@@ -308,6 +308,7 @@ const GenAITraitValidationForm = () => {
   };
 
   const handleRowClick = (row) => {
+    // console.log('row', row);
     setSelectedRowForFeedback(row);
     setSelectedTraitsFromList([]);
     setFeedbackText('');
@@ -714,7 +715,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
+    const wsUrl = 'ws://localhost:3000';
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
@@ -999,7 +1000,8 @@ const GenAITraitValidationForm = () => {
               const cpTraits = item.context_prompt ? processTraits(item.context_prompt.genAiRecords) : [];
 
               const handleIRClick = (e) => {
-                e.stopPropagation();
+
+                e.stopPropagation()
                 const payload = {
                   id: `${item._id || rowIndex}_initial`,
                   version: item.version || '',
@@ -1007,10 +1009,10 @@ const GenAITraitValidationForm = () => {
                   type: 'INITIAL_REACTION',
                   text: item.initial_reaction?.text || '',
                   traits: irTraits,
-                  feedback: item.initial_reaction?.feedback || [],
+
                   timestamp: Date.now()
+
                 };
-                console.log('Sending Payload (IR):', payload);
                 handleRowClick(payload);
               };
 
@@ -1026,7 +1028,6 @@ const GenAITraitValidationForm = () => {
                   feedback: item.context_prompt?.feedback || [],
                   timestamp: Date.now()
                 };
-                console.log('Sending Payload (CP):', payload);
                 handleRowClick(payload);
               };
 
@@ -1553,9 +1554,18 @@ const GenAITraitValidationForm = () => {
                         text: item.initial_reaction?.text || '',
                         traits: irTraits,
                         feedback: item.initial_reaction?.feedback || [],
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        feedback: item.initial_reaction?.genAiRecords
+                          ? item.initial_reaction.genAiRecords
+                            .filter(r => String(r.action || "").toLowerCase().includes("score change via feedback"))
+                            .map(r => ({
+                              text: r.feedback,
+                              trait: r.traitTitle,
+                              shouldExist: r.finalScore
+                            }))
+                          : [],
                       };
-                      console.log('Sending Payload (IR - DB Table):', payload);
+
                       handleRowClick(payload);
                     };
 
@@ -1786,58 +1796,68 @@ const GenAITraitValidationForm = () => {
 
 
             <div style={{ marginBottom: '15px' }}>
-              <strong style={{ color: '#666' }}>Result:</strong>
-              <div style={{ marginTop: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{
-                  padding: '4px 12px',
-                  borderRadius: '4px',
-                  backgroundColor: selectedTraitFeedback.color === 'black' ? '#f5f5f5' :
-                    selectedTraitFeedback.color === 'red' ? '#ffe6e6' : '#e6ffe6',
-                  color: selectedTraitFeedback.color,
-                  fontWeight: 'bold'
-                }}>
-                  {selectedTraitFeedback.llmScore === 1 && selectedTraitFeedback.finalScore === 1 && '✓ Confirmed'}
-                  {selectedTraitFeedback.llmScore === 1 && selectedTraitFeedback.finalScore === 0 && '✗ Removed'}
-                  {selectedTraitFeedback.llmScore === 0 && selectedTraitFeedback.finalScore === 1 && '+ Added'}
-                </span>
-                <span style={{ color: '#666', fontSize: '14px' }}>
-                  (Hunch LLM Score: {selectedTraitFeedback.llmScore === 1 ? 'Yes' : 'No'},
-                  GenAI Score: {selectedTraitFeedback.genAiScore === 1 ? 'Yes' : 'No'},
-                  Final Score: {selectedTraitFeedback.finalScore === 1 ? 'Yes' : 'No'})
-                </span>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <strong style={{ color: '#666' }}>Action:</strong>
-              <p style={{ margin: '5px 0 0 0', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                {selectedTraitFeedback.action || 'No change'}
-              </p>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <strong style={{ color: '#666' }}>GenAI Score Confidence:</strong>
+              <strong style={{ color: '#666', display: 'block', marginBottom: '8px' }}>GenAI Score Confidence:</strong>
               <div style={{ marginTop: '5px' }}>
                 <div style={{
                   width: '100%',
-                  height: '20px',
+                  height: '24px',
                   backgroundColor: '#e0e0e0',
-                  borderRadius: '10px',
-                  overflow: 'hidden'
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
                 }}>
                   <div style={{
                     width: `${(selectedTraitFeedback.confidence || 0) * 100}%`,
                     height: '100%',
                     backgroundColor: selectedTraitFeedback.confidence >= 0.8 ? '#28a745' :
                       selectedTraitFeedback.confidence >= 0.6 ? '#ffc107' : '#dc3545',
-                    transition: 'width 0.3s'
-                  }}></div>
+                    transition: 'width 0.3s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                  }}>
+                    {((selectedTraitFeedback.confidence || 0) * 100).toFixed(0)}%
+                  </div>
                 </div>
-                <span style={{ fontSize: '14px', color: '#666', marginTop: '5px', display: 'block' }}>
-                  {(selectedTraitFeedback.confidence || 0).toFixed(2)} ({(selectedTraitFeedback.confidence || 0) * 100}%)
-                </span>
               </div>
             </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <strong style={{ color: '#666', fontSize: '16px', borderBottom: '2px solid #eee', paddingBottom: '5px', display: 'block', marginBottom: '10px' }}>Results</strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#555' }}>Hunch LLM Score:</span>
+                  <span style={{ fontWeight: 'bold', fontSize: '15px', color: '#333' }}>
+                    {selectedTraitFeedback.llmScore === 1 ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#555' }}>GenAI Score:</span>
+                  <span style={{ fontWeight: 'bold', fontSize: '15px', color: '#333' }}>
+                    {selectedTraitFeedback.genAiScore === 1 ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '8px' }}>
+                  <span style={{ color: '#555' }}>Final Score:</span>
+                  <span style={{ fontWeight: 'bold', fontSize: '15px', color: selectedTraitFeedback.finalScore === 1 ? '#28a745' : '#dc3545' }}>
+                    {selectedTraitFeedback.finalScore === 1 ? 'Yes' : 'No'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <strong style={{ color: '#666' }}>GenAI Confidence Status:</strong>
+              <p style={{ margin: '5px 0 0 0', padding: '8px', backgroundColor: '#f5f5f5', borderRadius: '4px', fontStyle: 'italic', color: '#555' }}>
+                {selectedTraitFeedback.confidence >= 0.8 ? 'GenAI is Confident' : 'GenAI is Unsure (Low Confidence)'}
+              </p>
+            </div>
+
+
 
             {/* <div style={{ marginBottom: '15px' }}>
               <strong style={{ color: '#666' }}>GenAI Present:</strong>
@@ -1862,46 +1882,54 @@ const GenAITraitValidationForm = () => {
               </p>
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ color: '#666', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Feedback:
-              </label>
-              <textarea
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder="Enter your feedback..."
-                style={{
-                  width: '100%',
-                  minHeight: '100px',
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
+            <div style={{ marginTop: '25px', borderTop: '2px dashed #ddd', paddingTop: '20px' }}>
+              <h3 style={{ margin: '0 0 15px 0', color: '#333', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>👉</span> Human Review
+              </h3>
+              <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px', fontStyle: 'italic' }}>
+                Only provide feedback if GenAI is incorrect or unsure.
+              </p>
 
-            <div style={{ marginBottom: '15px' }}>
-              <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Final Score:</strong>
-              <select
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ color: '#666', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                  Feedback:
+                </label>
+                <textarea
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="Enter your feedback..."
+                  style={{
+                    width: '100%',
+                    minHeight: '100px',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
 
-                value={isTraitValidationIncorrect}
-                onChange={(e) => setIsTraitValidationIncorrect(parseInt(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: '4px',
-                  border: '1px solid #ddd',
-                  fontSize: '14px',
-                  backgroundColor: 'white'
-                }}
-              >
-                <option value="" disabled>Select Final Score</option>
-                <option value={1}>1</option>
-                <option value={0}>0</option>
-              </select>
+              <div style={{ marginBottom: '15px' }}>
+                <strong style={{ color: '#666', display: 'block', marginBottom: '5px' }}>Correct Final Score:</strong>
+                <select
+                  value={isTraitValidationIncorrect}
+                  onChange={(e) => setIsTraitValidationIncorrect(parseInt(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd',
+                    fontSize: '14px',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  <option value="" disabled>Select Final Score</option>
+                  <option value={1}>1</option>
+                  <option value={0}>0</option>
+                </select>
+              </div>
             </div>
 
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -2008,7 +2036,7 @@ const GenAITraitValidationForm = () => {
           </div>
         </div>
       )}
-
+      {console.log('Selected Row For Feedback:', selectedRowForFeedback)}
       {/* Row Click Feedback Modal */}
       {selectedRowForFeedback && (
         <div
@@ -2077,7 +2105,6 @@ const GenAITraitValidationForm = () => {
                 {selectedRowForFeedback.text || <span style={{ color: '#999' }}>No text available</span>}
               </div>
             </div>
-
             {selectedRowForFeedback.feedback && selectedRowForFeedback.feedback.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
                 <strong style={{ display: 'block', marginBottom: '8px', color: '#333' }}>Existing Feedback:</strong>
@@ -2121,11 +2148,10 @@ const GenAITraitValidationForm = () => {
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333' }}>
-                Select Traits (Multiple):
+                Select Trait:
               </label>
 
               <Select
-                isMulti
                 options={(() => {
                   // Define the custom order
                   const traitOrder = [
@@ -2217,9 +2243,9 @@ const GenAITraitValidationForm = () => {
 
                   return sortedTraits.map(t => ({ value: t.title, label: t.title }));
                 })()}
-                value={selectedTraitsFromList.map(trait => ({ value: trait, label: trait }))}
+                value={selectedTraitsFromList ? { value: selectedTraitsFromList, label: selectedTraitsFromList } : null}
                 onChange={(selected) => {
-                  setSelectedTraitsFromList(selected ? selected.map(option => option.value) : []);
+                  setSelectedTraitsFromList(selected ? selected.value : null);
                 }}
                 placeholder="Search and select traits..."
                 styles={{
@@ -2251,9 +2277,9 @@ const GenAITraitValidationForm = () => {
                 }}
               />
 
-              {selectedTraitsFromList.length > 0 && (
+              {selectedTraitsFromList && (
                 <div style={{ marginTop: '10px', fontSize: '13px', color: '#666' }}>
-                  Selected: {selectedTraitsFromList.length} trait(s)
+                  Selected: {selectedTraitsFromList}
                 </div>
               )}
             </div>
@@ -2264,12 +2290,12 @@ const GenAITraitValidationForm = () => {
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <button
-                  onClick={() => setShouldExist(true)}
+                  onClick={() => setShouldExist(1)}
                   style={{
                     padding: '10px 20px',
-                    backgroundColor: shouldExist ? '#28a745' : '#e9ecef',
-                    color: shouldExist ? 'white' : '#495057',
-                    border: shouldExist ? '2px solid #28a745' : '2px solid #ced4da',
+                    backgroundColor: shouldExist === 1 ? '#28a745' : '#e9ecef',
+                    color: shouldExist === 1 ? 'white' : '#495057',
+                    border: shouldExist === 1 ? '2px solid #28a745' : '2px solid #ced4da',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     fontSize: '14px',
@@ -2280,12 +2306,12 @@ const GenAITraitValidationForm = () => {
                   True
                 </button>
                 <button
-                  onClick={() => setShouldExist(false)}
+                  onClick={() => setShouldExist(0)}
                   style={{
                     padding: '10px 20px',
-                    backgroundColor: !shouldExist ? '#dc3545' : '#e9ecef',
-                    color: !shouldExist ? 'white' : '#495057',
-                    border: !shouldExist ? '2px solid #dc3545' : '2px solid #ced4da',
+                    backgroundColor: shouldExist === 0 ? '#dc3545' : '#e9ecef',
+                    color: shouldExist === 0 ? 'white' : '#495057',
+                    border: shouldExist === 0 ? '2px solid #dc3545' : '2px solid #ced4da',
                     borderRadius: '6px',
                     cursor: 'pointer',
                     fontSize: '14px',
@@ -2322,9 +2348,9 @@ const GenAITraitValidationForm = () => {
               <button
                 onClick={() => {
                   setSelectedRowForFeedback(null);
-                  setSelectedTraitsFromList([]);
+                  setSelectedTraitsFromList(null);
                   setFeedbackText('');
-                  setShouldExist(true);
+                  setShouldExist(1);
                 }}
                 style={{
                   padding: '10px 20px',
@@ -2341,29 +2367,25 @@ const GenAITraitValidationForm = () => {
               </button>
               <button
                 onClick={async () => {
-                  if (selectedTraitsFromList.length === 0) {
-                    alert('Please select at least one trait');
+                  if (!selectedTraitsFromList) {
+                    alert('Please select a trait');
                     return;
                   }
 
                   setIsSubmittingFeedback(true);
                   try {
-                    // Create array of objects for each selected trait
-                    const feedbackArray = selectedTraitsFromList.map(traitName => ({
-                      traitName: traitName,
-                      feedback: feedbackText,
-                      documentId: selectedRowForFeedback.id.split('_')[0],
-                      type: selectedRowForFeedback.type,
-                      shouldExist: shouldExist
-                    }));
-
-                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/store-feedback', {
+                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
                       },
                       body: JSON.stringify({
-                        feedbackArray: feedbackArray
+                        traitName: selectedTraitsFromList,
+                        feedback: feedbackText,
+                        documentId: selectedRowForFeedback.id.split('_')[0],
+                        genAiRecordId: null,
+                        type: selectedRowForFeedback.type,
+                        isTraitValidationIncorrect: shouldExist
                       })
                     });
 
