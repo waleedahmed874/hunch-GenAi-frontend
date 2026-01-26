@@ -715,7 +715,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = 'ws://localhost:3000';
+    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
@@ -804,6 +804,9 @@ const GenAITraitValidationForm = () => {
     return genAiRecords.map(record => {
       const llmScore = record.llmScore || 0;
       const finalScore = record.finalScore || 0;
+      const genAiScore = record.genAiSays?.score || 0;
+      const confidence = record.genAiSays?.confidence || 0;
+
 
       let icon = '';
       let color = '';
@@ -834,6 +837,9 @@ const GenAITraitValidationForm = () => {
         // Grey color for traits changed via feedback
         icon = '•';
         color = 'grey';
+      } else if (llmScore === 0 && genAiScore === 1 && confidence < 0.80) {
+        icon = '+';
+        color = '#d97706'; // Gold/Yellow (same as caution flag)
       } else {
         // llmScore 0, finalScore 0 - not listed
         return null;
@@ -1467,7 +1473,7 @@ const GenAITraitValidationForm = () => {
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>≥ 0.80</td>
-                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Green fill + ➕ “+”</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Green fill + ➕ </td>
                 </tr>
                 <tr>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
@@ -1479,7 +1485,7 @@ const GenAITraitValidationForm = () => {
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
-                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ⚠</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Gold/Yellow fill + ➕</td>
                 </tr>
               </tbody>
             </table>
@@ -1553,7 +1559,6 @@ const GenAITraitValidationForm = () => {
                         type: 'INITIAL_REACTION',
                         text: item.initial_reaction?.text || '',
                         traits: irTraits,
-                        feedback: item.initial_reaction?.feedback || [],
                         timestamp: Date.now(),
                         feedback: item.initial_reaction?.genAiRecords
                           ? item.initial_reaction.genAiRecords
@@ -1578,7 +1583,15 @@ const GenAITraitValidationForm = () => {
                         type: 'CONTEXT_PROMPT',
                         text: item.context_prompt?.text || '',
                         traits: cpTraits,
-                        feedback: item.context_prompt?.feedback || [],
+                        feedback: item.context_prompt?.genAiRecords
+                        ? item.context_prompt.genAiRecords
+                          .filter(r => String(r.action || "").toLowerCase().includes("score change via feedback"))
+                          .map(r => ({
+                            text: r.feedback,
+                            trait: r.traitTitle,
+                            shouldExist: r.finalScore
+                          }))
+                        : [],
                         timestamp: Date.now()
                       };
                       console.log('Sending Payload (CP - DB Table):', payload);
@@ -1842,7 +1855,7 @@ const GenAITraitValidationForm = () => {
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '8px' }}>
-                  <span style={{ color: '#555' }}>Final Score:</span>
+                  <span style={{ color: '#555' }}>Current Score:</span>
                   <span style={{ fontWeight: 'bold', fontSize: '15px', color: selectedTraitFeedback.finalScore === 1 ? '#28a745' : '#dc3545' }}>
                     {selectedTraitFeedback.finalScore === 1 ? 'Yes' : 'No'}
                   </span>
@@ -1887,8 +1900,7 @@ const GenAITraitValidationForm = () => {
                 <span>👉</span> Human Review
               </h3>
               <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px', fontStyle: 'italic' }}>
-                Only provide feedback if GenAI is incorrect or unsure.
-              </p>
+              Provide feedback when Gen AI is incorrect or unsure, and explain the proper rationale for the correct score              </p>
 
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ color: '#666', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
@@ -1929,6 +1941,9 @@ const GenAITraitValidationForm = () => {
                   <option value={1}>1</option>
                   <option value={0}>0</option>
                 </select>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '5px', fontStyle: 'italic' }}>
+                  1 indicates this trait should be present, a 0 indicates this trait should not be present.
+                </p>
               </div>
             </div>
 
