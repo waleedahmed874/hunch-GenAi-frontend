@@ -812,10 +812,15 @@ const GenAITraitValidationForm = () => {
       let color = '';
       let displayName = record.traitTitle;
 
-      if (llmScore === 1 && finalScore === 1) {
+      if (String(record.action || "").toLowerCase().includes("score change via feedback") ||
+        record.genAiSays?.validationIncorrect === true) {
+        // Grey color for traits changed via feedback
+        icon = '•';
+        color = 'grey';
+      } else if (llmScore === 1 && finalScore === 1) {
         if (String(record.action || "").toLowerCase().includes("human review required")) {
           // Yellow color for human review required
-          icon = '⚠';
+          icon = '✗';
           color = '#d97706'; // Amber/Yellow
         } else {
           // Black checkbox icon, black font
@@ -831,12 +836,6 @@ const GenAITraitValidationForm = () => {
         // Green Plus Sign Icon, Green Font
         icon = '+';
         color = 'green';
-      } else if (llmScore === 0 && finalScore === 0 &&
-        (String(record.action || "").toLowerCase().includes("score change via feedback") ||
-          record.genAiSays?.validationIncorrect === true)) {
-        // Grey color for traits changed via feedback
-        icon = '•';
-        color = 'grey';
       } else if (llmScore === 0 && genAiScore === 1 && confidence < 0.80) {
         icon = '+';
         color = '#d97706'; // Gold/Yellow (same as caution flag)
@@ -1479,7 +1478,7 @@ const GenAITraitValidationForm = () => {
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>Yes (1)</td>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
-                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ⚠</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Yellow fill + ✗</td>
                 </tr>
                 <tr>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
@@ -1584,14 +1583,14 @@ const GenAITraitValidationForm = () => {
                         text: item.context_prompt?.text || '',
                         traits: cpTraits,
                         feedback: item.context_prompt?.genAiRecords
-                        ? item.context_prompt.genAiRecords
-                          .filter(r => String(r.action || "").toLowerCase().includes("score change via feedback"))
-                          .map(r => ({
-                            text: r.feedback,
-                            trait: r.traitTitle,
-                            shouldExist: r.finalScore
-                          }))
-                        : [],
+                          ? item.context_prompt.genAiRecords
+                            .filter(r => String(r.action || "").toLowerCase().includes("score change via feedback"))
+                            .map(r => ({
+                              text: r.feedback,
+                              trait: r.traitTitle,
+                              shouldExist: r.finalScore
+                            }))
+                          : [],
                         timestamp: Date.now()
                       };
                       console.log('Sending Payload (CP - DB Table):', payload);
@@ -1854,12 +1853,12 @@ const GenAITraitValidationForm = () => {
                     {selectedTraitFeedback.genAiScore === 1 ? 'Yes' : 'No'}
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '8px' }}>
+                {/* <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '8px' }}>
                   <span style={{ color: '#555' }}>Current Score:</span>
                   <span style={{ fontWeight: 'bold', fontSize: '15px', color: selectedTraitFeedback.finalScore === 1 ? '#28a745' : '#dc3545' }}>
                     {selectedTraitFeedback.finalScore === 1 ? 'Yes' : 'No'}
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -1900,7 +1899,7 @@ const GenAITraitValidationForm = () => {
                 <span>👉</span> Human Review
               </h3>
               <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px', fontStyle: 'italic' }}>
-              Provide feedback when Gen AI is incorrect or unsure, and explain the proper rationale for the correct score              </p>
+                Provide feedback when Gen AI is incorrect or unsure, and explain the proper rationale for the correct score              </p>
 
               <div style={{ marginBottom: '15px' }}>
                 <label style={{ color: '#666', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
