@@ -13,7 +13,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTraits(true);
       setTraitsError(null);
       try {
-        const response = await fetch(`http://localhost:3000/api/traits`);
+        const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits`);
         if (!response.ok) throw new Error(`Failed: ${response.status}`);
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
@@ -189,7 +189,7 @@ const GenAITraitValidationForm = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3000/api/traits/process`, {
+      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -226,7 +226,7 @@ const GenAITraitValidationForm = () => {
       if (error.message === 'Failed to fetch') {
         errorMessage = 'Failed to connect to the API server. Please ensure:\n\n' +
           '1. The backend server is running on http://localhost:8000\n' +
-          '2. The server has CORS enabled to accept requests from http://localhost:3000\n' +
+          '2. The server has CORS enabled to accept requests from https://hunchgenaitest-320866101884.us-central1.run.app\n' +
           '3. The /batch_classify endpoint is accessible';
       }
 
@@ -472,7 +472,7 @@ const GenAITraitValidationForm = () => {
     });
 
     try {
-      const response = await fetch(`http://localhost:3000/api/traits/status`, {
+      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: id, isReviewed: newStatus })
@@ -530,7 +530,7 @@ const GenAITraitValidationForm = () => {
     setTableError(null);
 
     try {
-      const response = await fetch(`http://localhost:3000/api/traits/db`, {
+      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -559,7 +559,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTable(true);
       setTableError(null);
       try {
-        const response = await fetch(`http://localhost:3000/api/traits/db`);
+        const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -585,7 +585,7 @@ const GenAITraitValidationForm = () => {
     setIsLoadingTable(true);
     setTableError(null);
     try {
-      const response = await fetch(`http://localhost:3000/api/traits/db`);
+      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -741,7 +741,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = 'ws://localhost:3000';
+    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
@@ -2051,7 +2051,7 @@ const GenAITraitValidationForm = () => {
 
                   try {
                     // TODO: Replace with actual API endpoint
-                    const response = await fetch(`http://localhost:3000/api/traits/feedback`, {
+                    const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -2444,7 +2444,7 @@ const GenAITraitValidationForm = () => {
 
                   setIsSubmittingFeedback(true);
                   try {
-                    const response = await fetch('http://localhost:3000/api/traits/feedback', {
+                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
