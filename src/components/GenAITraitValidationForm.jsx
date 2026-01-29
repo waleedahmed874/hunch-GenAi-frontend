@@ -840,7 +840,8 @@ const GenAITraitValidationForm = () => {
 
       // Check if this is a human feedback change
       const isHumanFeedbackChange = String(record.action || "").toLowerCase().includes("score change via feedback") ||
-        record.feedback !== '';
+        (record.feedback && record.feedback !== '');
+
 
       if (llmScore === 1 && finalScore === 1) {
         if (String(record.action || "").toLowerCase().includes("human review required")) {
@@ -857,13 +858,19 @@ const GenAITraitValidationForm = () => {
         icon = '✗';
         color = isHumanFeedbackChange ? 'grey' : 'red';
         displayName = `(${record.traitTitle})`;
+      } else if (llmScore === 0 && finalScore === 0 &&
+        (String(record.action || "").toLowerCase().includes("score change via feedback") ||
+          record.genAiSays?.validationIncorrect === true)) {
+        // Grey color for traits changed via feedback
+        icon = '✗';
+        color = 'grey';
       } else if (llmScore === 0 && finalScore === 1) {
         // Green Plus Sign Icon, Green Font
         icon = '+';
         color = isHumanFeedbackChange ? 'grey' : 'green';
       } else if (llmScore === 0 && genAiScore === 1 && confidence < 0.80) {
         icon = '+';
-        color = '#d97706'; // Gold/Yellow (same as caution flag)
+        color = isHumanFeedbackChange ? 'grey' : '#d97706'; // Gold/Yellow (same as caution flag)
       } else {
         // llmScore 0, finalScore 0 - not listed
         return null;
