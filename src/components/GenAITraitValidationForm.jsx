@@ -844,15 +844,11 @@ const GenAITraitValidationForm = () => {
 
 
       if (llmScore === 1 && finalScore === 1) {
-        if (String(record.action || "").toLowerCase().includes("human review required")) {
-          // Yellow color for human review required
-          icon = '✗';
-          color = '#d97706'; // Amber/Yellow
-        } else {
-          // Black checkbox icon, black font
-          icon = '✓';
-          color = isHumanFeedbackChange ? 'grey' : 'black';
-        }
+
+        // Black checkbox icon, black font
+        icon = '✓';
+        color = isHumanFeedbackChange ? 'grey' : 'black';
+
       } else if (llmScore === 1 && finalScore === 0) {
         // Red X Icon, Red font for trait name in parentheses
         icon = '✗';
