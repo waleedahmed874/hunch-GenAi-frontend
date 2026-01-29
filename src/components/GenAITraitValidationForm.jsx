@@ -472,7 +472,7 @@ const GenAITraitValidationForm = () => {
     });
 
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/status`, {
+      const response = await fetch(`http://localhost:3000/api/traits/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: id, isReviewed: newStatus })
@@ -530,7 +530,7 @@ const GenAITraitValidationForm = () => {
     setTableError(null);
 
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`, {
+      const response = await fetch(`http://localhost:3000/api/traits/db`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -704,6 +704,32 @@ const GenAITraitValidationForm = () => {
         setIsProcessing(false);
         break;
 
+      case 'feedback_added':
+        console.log('📝 Feedback added:', data);
+        // Update the row with the updated document from the server
+        if (data.updatedDoc && data.documentId) {
+          const updateRow = (items) => {
+            if (!Array.isArray(items)) return items;
+            return items.map((item) => {
+              const itemId = item._id || item.id;
+              if (itemId && String(itemId) === String(data.documentId)) {
+                return data.updatedDoc;
+              }
+              return item;
+            });
+          };
+
+          setTableData(prev => updateRow(prev));
+          setApiResponse(prev => {
+            if (!prev) return prev;
+            if (Array.isArray(prev)) return updateRow(prev);
+            if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateRow(prev.data) };
+            if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateRow(prev.results) };
+            return prev;
+          });
+        }
+        break;
+
       case 'task_queued':
         console.log('Task queued:', data);
         break;
@@ -812,12 +838,11 @@ const GenAITraitValidationForm = () => {
       let color = '';
       let displayName = record.traitTitle;
 
-      if (String(record.action || "").toLowerCase().includes("score change via feedback") ||
-        record.genAiSays?.validationIncorrect === true) {
-        // Grey color for traits changed via feedback
-        icon = '•';
-        color = 'grey';
-      } else if (llmScore === 1 && finalScore === 1) {
+      // Check if this is a human feedback change
+      const isHumanFeedbackChange = String(record.action || "").toLowerCase().includes("score change via feedback") ||
+        record.feedback !== '';
+
+      if (llmScore === 1 && finalScore === 1) {
         if (String(record.action || "").toLowerCase().includes("human review required")) {
           // Yellow color for human review required
           icon = '✗';
@@ -825,17 +850,17 @@ const GenAITraitValidationForm = () => {
         } else {
           // Black checkbox icon, black font
           icon = '✓';
-          color = 'black';
+          color = isHumanFeedbackChange ? 'grey' : 'black';
         }
       } else if (llmScore === 1 && finalScore === 0) {
         // Red X Icon, Red font for trait name in parentheses
         icon = '✗';
-        color = 'red';
+        color = isHumanFeedbackChange ? 'grey' : 'red';
         displayName = `(${record.traitTitle})`;
       } else if (llmScore === 0 && finalScore === 1) {
         // Green Plus Sign Icon, Green Font
         icon = '+';
-        color = 'green';
+        color = isHumanFeedbackChange ? 'grey' : 'green';
       } else if (llmScore === 0 && genAiScore === 1 && confidence < 0.80) {
         icon = '+';
         color = '#d97706'; // Gold/Yellow (same as caution flag)
@@ -1996,29 +2021,9 @@ const GenAITraitValidationForm = () => {
 
                     const result = await response.json();
 
-                    if (result.success && result.updatedDoc) {
-                      const updatedDoc = result.updatedDoc;
-                      const docId = selectedTraitFeedback.documentId;
-
-                      const updateRow = (items) => {
-                        if (!Array.isArray(items)) return items;
-                        return items.map((item, idx) => {
-                          const itemId = item._id || item.id;
-                          if (itemId && String(itemId) === String(docId)) return updatedDoc;
-                          // Fallback to index matching if docId looks like an index and item has no _id
-                          if (!itemId && String(idx) === String(docId)) return updatedDoc;
-                          return item;
-                        });
-                      };
-
-                      setTableData(prev => updateRow(prev));
-                      setApiResponse(prev => {
-                        if (!prev) return prev;
-                        if (Array.isArray(prev)) return updateRow(prev);
-                        if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateRow(prev.data) };
-                        if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateRow(prev.results) };
-                        return prev;
-                      });
+                    // Row will be updated via WebSocket 'feedback_added' event
+                    if (result.success) {
+                      console.log('Feedback submitted successfully, waiting for WebSocket update...');
                     }
 
                     setSelectedTraitFeedback(null);
@@ -2169,6 +2174,7 @@ const GenAITraitValidationForm = () => {
                 options={(() => {
                   // Define the custom order
                   const traitOrder = [
+                    "Niche (Prompted)",
                     "Expressive",
                     "Positivity",
                     "Intuitive",
@@ -2199,7 +2205,6 @@ const GenAITraitValidationForm = () => {
                     "(NEW NEWS) Eye Catching",
                     "Surprise",
                     "Niche (Initial)",
-                    "Niche (Prompted)",
                     "Negativity",
                     "(NEUTRALITY-NEGATIVITY) Too Much Work",
                     "Fixable",
@@ -2407,29 +2412,9 @@ const GenAITraitValidationForm = () => {
 
                     const result = await response.json();
 
-                    if (result.success && result.updatedDoc) {
-                      const updatedDoc = result.updatedDoc;
-                      const docId = selectedRowForFeedback.id.split('_')[0];
-
-                      const updateRow = (items) => {
-                        if (!Array.isArray(items)) return items;
-                        return items.map((item, idx) => {
-                          const itemId = item._id || item.id;
-                          if (itemId && String(itemId) === String(docId)) return updatedDoc;
-                          // Fallback to index matching if docId looks like an index and item has no _id
-                          if (!itemId && String(idx) === String(docId)) return updatedDoc;
-                          return item;
-                        });
-                      };
-
-                      setTableData(prev => updateRow(prev));
-                      setApiResponse(prev => {
-                        if (!prev) return prev;
-                        if (Array.isArray(prev)) return updateRow(prev);
-                        if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateRow(prev.data) };
-                        if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateRow(prev.results) };
-                        return prev;
-                      });
+                    // Row will be updated via WebSocket 'feedback_added' event
+                    if (result.success) {
+                      console.log('Feedback submitted successfully, waiting for WebSocket update...');
                     }
 
                     setSelectedRowForFeedback(null);
