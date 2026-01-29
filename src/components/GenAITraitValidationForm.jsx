@@ -13,7 +13,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTraits(true);
       setTraitsError(null);
       try {
-        const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits`);
+        const response = await fetch(`http://localhost:3000/api/traits`);
         if (!response.ok) throw new Error(`Failed: ${response.status}`);
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
@@ -189,7 +189,7 @@ const GenAITraitValidationForm = () => {
     }
 
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/process`, {
+      const response = await fetch(`http://localhost:3000/api/traits/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -226,7 +226,7 @@ const GenAITraitValidationForm = () => {
       if (error.message === 'Failed to fetch') {
         errorMessage = 'Failed to connect to the API server. Please ensure:\n\n' +
           '1. The backend server is running on http://localhost:8000\n' +
-          '2. The server has CORS enabled to accept requests from https://hunchgenaitest-320866101884.us-central1.run.app\n' +
+          '2. The server has CORS enabled to accept requests from http://localhost:3000\n' +
           '3. The /batch_classify endpoint is accessible';
       }
 
@@ -559,7 +559,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTable(true);
       setTableError(null);
       try {
-        const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
+        const response = await fetch(`http://localhost:3000/api/traits/db`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -585,7 +585,7 @@ const GenAITraitValidationForm = () => {
     setIsLoadingTable(true);
     setTableError(null);
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
+      const response = await fetch(`http://localhost:3000/api/traits/db`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -741,7 +741,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
+    const wsUrl = 'ws://localhost:3000';
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
@@ -883,7 +883,8 @@ const GenAITraitValidationForm = () => {
         genAiScore: record.genAiSays?.score || 0,
         feedback: record.feedback || record.genAiSays?.feedback || '',
         isTraitValidationIncorrect: record.isTraitValidationIncorrect || record.genAiSays?.validationIncorrect,
-        _id: record._id
+        _id: record._id,
+        history: record.history || []
       };
     }).filter(trait => trait !== null);
   };
@@ -1969,6 +1970,56 @@ const GenAITraitValidationForm = () => {
                   1 indicates this trait should be present, a 0 indicates this trait should not be present.
                 </p>
               </div>
+
+              {/* Activity History Section */}
+              {selectedTraitFeedback.history && selectedTraitFeedback.history.length > 0 && (
+                <div style={{ marginTop: '20px', borderTop: '1px solid #e0e0e0', paddingTop: '15px' }}>
+                  <strong style={{ color: '#666', display: 'block', marginBottom: '10px', fontSize: '14px' }}>
+                    📋 Activity History
+                  </strong>
+                  <div style={{
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    {selectedTraitFeedback.history.map((item, idx) => (
+                      <div key={idx} style={{
+                        padding: '10px',
+                        backgroundColor: '#f8f9fa',
+                        borderRadius: '6px',
+                        border: '1px solid #e0e0e0',
+                        fontSize: '13px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                          <span style={{
+                            fontWeight: 'bold',
+                            color: item.finalScore === 1 ? '#28a745' : '#dc3545'
+                          }}>
+                            Final Score: {item.finalScore}
+                          </span>
+                          <span style={{
+                            fontSize: '11px',
+                            color: '#999',
+                            fontStyle: 'italic'
+                          }}>
+                            {item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}
+                          </span>
+                        </div>
+                        <div style={{ marginBottom: '5px', color: '#555' }}>
+                          <strong>Action:</strong> {item.action || 'N/A'}
+                        </div>
+                        {item.feedback && (
+                          <div style={{ color: '#666', fontStyle: 'italic' }}>
+                            <strong>Feedback:</strong> {item.feedback}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -2000,7 +2051,7 @@ const GenAITraitValidationForm = () => {
 
                   try {
                     // TODO: Replace with actual API endpoint
-                    const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback`, {
+                    const response = await fetch(`http://localhost:3000/api/traits/feedback`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -2393,7 +2444,7 @@ const GenAITraitValidationForm = () => {
 
                   setIsSubmittingFeedback(true);
                   try {
-                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback', {
+                    const response = await fetch('http://localhost:3000/api/traits/feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
