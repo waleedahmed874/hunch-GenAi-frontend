@@ -838,38 +838,42 @@ const GenAITraitValidationForm = () => {
       let color = '';
       let displayName = record.traitTitle;
 
-      // Check if this is a human feedback change
+      // Human feedback overrides: if trait was changed via feedback, show grey
       const isHumanFeedbackChange = String(record.action || "").toLowerCase().includes("score change via feedback") ||
         (record.feedback && record.feedback !== '');
 
-
-      if (llmScore === 1 && finalScore === 1) {
-
-        // Black checkbox icon, black font
+      // Decision criteria (Hunch LLM Score, Gen AI Score, Confidence) → icon + color
+      // | LLM | GenAI | Confidence | Result        |
+      // |  1  |   1   |    any     | ✓ black       |
+      // |  1  |   0   |   ≥ 0.80   | ✗ red         |
+      // |  1  |   0   |   < 0.80   | ✗ gold/yellow |
+      // |  0  |   1   |   ≥ 0.80   | + green       |
+      // |  0  |   1   |   < 0.80   | + gold/yellow |
+      // |  0  |   0   | feedback   | ✗ grey        |
+      // |  0  |   0   | else       | not listed    |
+      if (llmScore === 1 && genAiScore === 1) {
         icon = '✓';
         color = isHumanFeedbackChange ? 'grey' : 'black';
-
-      } else if (llmScore === 1 && finalScore === 0) {
-        // Red X Icon, Red font for trait name in parentheses
+      } else if (llmScore === 1 && genAiScore === 0 && confidence >= 0.80) {
         icon = '✗';
         color = isHumanFeedbackChange ? 'grey' : 'red';
         displayName = `(${record.traitTitle})`;
-      } else if (llmScore === 0 && finalScore === 0 &&
+      } else if (llmScore === 1 && genAiScore === 0 && confidence < 0.80) {
+        icon = '✗';
+        color = isHumanFeedbackChange ? 'grey' : '#d97706'; // Gold/Yellow
+      } else if (llmScore === 0 && genAiScore === 0 &&
         (String(record.action || "").toLowerCase().includes("score change via feedback") ||
           record.genAiSays?.validationIncorrect === true)) {
-        // Grey color for traits changed via feedback
         icon = '✗';
         color = 'grey';
-      } else if (llmScore === 0 && finalScore === 1) {
-        // Green Plus Sign Icon, Green Font
+      } else if (llmScore === 0 && genAiScore === 1 && confidence >= 0.80) {
         icon = '+';
         color = isHumanFeedbackChange ? 'grey' : 'green';
       } else if (llmScore === 0 && genAiScore === 1 && confidence < 0.80) {
         icon = '+';
-        color = isHumanFeedbackChange ? 'grey' : '#d97706'; // Gold/Yellow (same as caution flag)
+        color = isHumanFeedbackChange ? 'grey' : '#d97706'; // Gold/Yellow
       } else {
-        // llmScore 0, finalScore 0 - not listed
-        return null;
+        return null; // LLM 0, GenAI 0, no feedback – not listed
       }
 
       return {
