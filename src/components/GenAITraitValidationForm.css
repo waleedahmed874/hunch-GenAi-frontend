@@ -1,3 +1,7 @@
+.logo-fallback.show {
+  display: flex !important;
+}
+
 .form-container {
   background: white;
   border-radius: 12px;
@@ -45,9 +49,9 @@
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #F15C4B;
   background-color: white;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(241, 92, 75, 0.2);
 }
 
 .form-group textarea {
@@ -78,13 +82,13 @@
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #F15C4B 0%, #d94a3b 100%);
   color: white;
 }
 
 .submit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 5px 15px rgba(241, 92, 75, 0.4);
 }
 
 .submit-btn:active {
@@ -267,7 +271,7 @@
 }
 
 .traits-table thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #F15C4B 0%, #d94a3b 100%);
   color: white;
 }
 

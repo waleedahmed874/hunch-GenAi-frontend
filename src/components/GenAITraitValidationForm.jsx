@@ -13,7 +13,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTraits(true);
       setTraitsError(null);
       try {
-        const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits`);
+        const response = await fetch(`http://localhost:3000/api/traits`);
         if (!response.ok) throw new Error(`Failed: ${response.status}`);
         const result = await response.json();
         if (result.success && Array.isArray(result.data)) {
@@ -189,7 +189,7 @@ const GenAITraitValidationForm = () => {
     }
 
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/process`, {
+      const response = await fetch(`http://localhost:3000/api/traits/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -226,7 +226,7 @@ const GenAITraitValidationForm = () => {
       if (error.message === 'Failed to fetch') {
         errorMessage = 'Failed to connect to the API server. Please ensure:\n\n' +
           '1. The backend server is running on http://localhost:8000\n' +
-          '2. The server has CORS enabled to accept requests from https://hunchgenaitest-320866101884.us-central1.run.app\n' +
+          '2. The server has CORS enabled to accept requests from http://localhost:3000\n' +
           '3. The /batch_classify endpoint is accessible';
       }
 
@@ -314,131 +314,116 @@ const GenAITraitValidationForm = () => {
     setFeedbackText('');
   };
 
-  // Function to download data as CSV
+  // Escape CSV cell: wrap in quotes and escape internal quotes
+  const csvEscape = (val) => {
+    if (val == null) return '""';
+    const s = String(val).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+
+  // Function to download data as CSV (Trait Guide 2.0 format: one row per trait, 17 columns)
   const handleDownloadCSV = () => {
     if (tableData.length === 0) {
       alert('No data to export');
       return;
     }
 
-    // Prepare CSV data
-    const csvRows = [];
-
-    // CSV Headers
     const headers = [
-      'Document ID',
-      'Version',
-      'Type',
-      'Text',
-      'Original Traits',
-      'GenAI Made Changes',
-      'Traits Added',
-      'Added Traits Feedback',
-      'Traits Removed',
-      'Removed Traits Feedback',
-      'Unchanged Traits',
-      'Unchanged Traits Feedback',
-      'Total Original',
-      'Total Added',
-      'Total Removed'
+      'Trait',
+      'Reaction Type',
+      'Initial Reaction',
+      'Context Prompt',
+      'Hunch LLM Score',
+      'Gen AI Score',
+      'Gen AI Score Confidence',
+      'Gen AI Confidence Status',
+      'Gen AI Rationale',
+      'Correct Final Score',
+      'Corrective Feedback',
+      'Missing Trait Feedback',
+      'Row Number',
+      'Project ID',
+      'Concept Name',
+      'Hunch ID',
+      'Version'
     ];
-    csvRows.push(headers.join(','));
+    const csvRows = [headers.map(csvEscape).join(',')];
+    let rowNumber = 0;
+    const projectId = formData.projectId || '';
 
-    // Helper: get feedback string from feedback array filtered by shouldExist
-    function getFeedbackByShouldExist(feedbackArray, shouldExistValue) {
-      if (!Array.isArray(feedbackArray)) return '';
-      return feedbackArray
-        .filter(fb => fb.shouldExist === shouldExistValue)
-        .map(fb => {
-          const feedbackText = fb.text ? fb.text.replace(/\"/g, '"') : '';
-          return `${fb.trait} (feedback: ${feedbackText}, shouldExist: ${fb.shouldExist})`;
-        })
-        .join('; ');
-    }
-
-    // Helper: get feedback string for unchanged traits (no shouldExist or null)
-    function getUnchangedFeedback(feedbackArray) {
-      if (!Array.isArray(feedbackArray)) return '';
-      return feedbackArray
-        .filter(fb => fb.shouldExist === undefined || fb.shouldExist === null)
-        .map(fb => {
-          const feedbackText = fb.text ? fb.text.replace(/\"/g, '"') : '';
-          return `${fb.trait} (feedback: ${feedbackText})`;
-        })
-        .join('; ');
-    }
-
-    // Process each document
     tableData.forEach((item) => {
-      // Process Initial Reaction
-      if (item.initial_reaction) {
-        const analysis = analyzeTraits(item, 'initial_reaction');
-        const feedbackArray = item.initial_reaction.feedback || [];
-        if (analysis) {
-          const addedFeedback = getFeedbackByShouldExist(feedbackArray, true);
-          const removedFeedback = getFeedbackByShouldExist(feedbackArray, false);
-          const unchangedFeedback = getUnchangedFeedback(feedbackArray);
-          const row = [
-            `"${item._id || ''}"`,
-            `"${item.version || ''}"`,
-            `"INITIAL_REACTION"`,
-            `"${(item.initial_reaction.text || '').replace(/\"/g, '"')}"`,
-            `"${analysis.originalTraits}"`,
-            `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
-            `"${analysis.addedTraits}"`,
-            `"${addedFeedback}"`,
-            `"${analysis.removedTraits}"`,
-            `"${removedFeedback}"`,
-            `"${analysis.unchangedTraits}"`,
-            `"${unchangedFeedback}"`,
-            analysis.totalOriginal,
-            analysis.totalAdded,
-            analysis.totalRemoved
-          ];
-          csvRows.push(row.join(','));
-        }
-      }
+      const initialReactionText = (item.initial_reaction?.text || '').trim();
+      const contextPromptText = (item.context_prompt?.text || '').trim();
+      const conceptName = item.concept_name ?? '';
+      const hunchId = item._id ?? '';
+      const version = item.version ?? '';
 
-      // Process Context Prompt
-      if (item.context_prompt) {
-        const analysis = analyzeTraits(item, 'context_prompt');
-        const feedbackArray = item.context_prompt.feedback || [];
-        if (analysis) {
-          const addedFeedback = getFeedbackByShouldExist(feedbackArray, true);
-          const removedFeedback = getFeedbackByShouldExist(feedbackArray, false);
-          const unchangedFeedback = getUnchangedFeedback(feedbackArray);
-          const row = [
-            `"${item._id || ''}"`,
-            `"${item.version || ''}"`,
-            `"CONTEXT_PROMPT"`,
-            `"${(item.context_prompt.text || '').replace(/\"/g, '"')}"`,
-            `"${analysis.originalTraits}"`,
-            `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
-            `"${analysis.addedTraits}"`,
-            `"${addedFeedback}"`,
-            `"${analysis.removedTraits}"`,
-            `"${removedFeedback}"`,
-            `"${analysis.unchangedTraits}"`,
-            `"${unchangedFeedback}"`,
-            analysis.totalOriginal,
-            analysis.totalAdded,
-            analysis.totalRemoved
-          ];
-          csvRows.push(row.join(','));
+      const emitRow = (record, reactionType) => {
+        rowNumber += 1;
+        const llmScore = record.llmScore ?? 0;
+        const genAiScore = record.genAiSays?.score ?? 0;
+        const confidence = record.genAiSays?.confidence ?? null;
+        const finalScore = record.finalScore ?? 0;
+        const rationale = record.genAiSays?.rationale ?? '';
+        const feedback = (record.feedback || '').trim();
+
+        const isMissingTraitCase = llmScore === 0 && genAiScore === 0 && finalScore === 1;
+        const correctiveFeedback = isMissingTraitCase ? '' : feedback;
+        const missingTraitFeedback = isMissingTraitCase ? feedback : '';
+
+        let confidenceStatus = '';
+        if (record.genAiSays == null || (record.genAiSays?.score == null && record.genAiSays?.confidence == null)) {
+          confidenceStatus = 'Trait Missing Not Scored';
+        } else if (confidence != null && confidence >= 0.8) {
+          confidenceStatus = 'Gen AI is Confident';
+        } else if (confidence != null && confidence < 0.8) {
+          confidenceStatus = 'GenAI is Unsure (Low Confidence)';
+        } else {
+          confidenceStatus = '';
         }
+
+        const genAiScoreDisplay = genAiScore === 1 ? '1 %' : String(genAiScore);
+        const confidenceDisplay = confidence != null ? (Math.round(confidence * 100) + '%') : '';
+
+        const traitDisplay = (record.llmScore === 1 && record.finalScore === 0)
+          ? `(${record.traitTitle || ''})`
+          : (record.traitTitle || '');
+
+        const row = [
+          csvEscape(traitDisplay),
+          csvEscape(reactionType),
+          csvEscape(initialReactionText),
+          csvEscape(contextPromptText),
+          llmScore,
+          genAiScoreDisplay,
+          csvEscape(confidenceDisplay),
+          csvEscape(confidenceStatus),
+          csvEscape(rationale),
+          finalScore,
+          csvEscape(correctiveFeedback),
+          csvEscape(missingTraitFeedback),
+          rowNumber,
+          csvEscape(projectId),
+          csvEscape(conceptName),
+          csvEscape(hunchId),
+          csvEscape(version)
+        ];
+        csvRows.push(row.join(','));
+      };
+
+      if (item.initial_reaction?.genAiRecords?.length) {
+        item.initial_reaction.genAiRecords.forEach((record) => emitRow(record, 'Initial Reaction'));
+      }
+      if (item.context_prompt?.genAiRecords?.length) {
+        item.context_prompt.genAiRecords.forEach((record) => emitRow(record, 'Context Prompt'));
       }
     });
 
-    // Create CSV content
     const csvContent = csvRows.join('\n');
-
-    // Create blob and download
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute('href', url);
-    link.setAttribute('download', `traits_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', `Trait_Guide_export_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -472,7 +457,7 @@ const GenAITraitValidationForm = () => {
     });
 
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/status`, {
+      const response = await fetch(`http://localhost:3000/api/traits/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ documentId: id, isReviewed: newStatus })
@@ -530,7 +515,7 @@ const GenAITraitValidationForm = () => {
     setTableError(null);
 
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`, {
+      const response = await fetch(`http://localhost:3000/api/traits/db`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -559,7 +544,7 @@ const GenAITraitValidationForm = () => {
       setIsLoadingTable(true);
       setTableError(null);
       try {
-        const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
+        const response = await fetch(`http://localhost:3000/api/traits/db`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -585,7 +570,7 @@ const GenAITraitValidationForm = () => {
     setIsLoadingTable(true);
     setTableError(null);
     try {
-      const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/db`);
+      const response = await fetch(`http://localhost:3000/api/traits/db`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -741,7 +726,7 @@ const GenAITraitValidationForm = () => {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    const wsUrl = 'wss://hunchgenaitest-320866101884.us-central1.run.app';
+    const wsUrl = 'ws://localhost:3000';
     let reconnectTimeout = null;
 
     const connectWebSocket = () => {
@@ -802,6 +787,42 @@ const GenAITraitValidationForm = () => {
     };
   }, [handleWebSocketUpdate]);
 
+  // Helper function to convert timestamp to "time ago" format
+  const getTimeAgo = (timestamp) => {
+    if (!timestamp) return '';
+
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - past) / 1000);
+
+    if (diffInSeconds < 60) {
+      return 'just now';
+    }
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) {
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) {
+      return `${diffInMonths} month${diffInMonths > 1 ? 's' : ''} ago`;
+    }
+
+    const diffInYears = Math.floor(diffInMonths / 12);
+    return `${diffInYears} year${diffInYears > 1 ? 's' : ''} ago`;
+  };
+
   const getTraitStatus = (item, traitName) => {
     const genAiRecord = item.genAiRecords?.find(record => record.traitTitle === traitName);
     if (!genAiRecord) return { color: 'grey', showTooltip: false };
@@ -838,38 +859,42 @@ const GenAITraitValidationForm = () => {
       let color = '';
       let displayName = record.traitTitle;
 
-      // Check if this is a human feedback change
+      // Human feedback overrides: if trait was changed via feedback, show grey
       const isHumanFeedbackChange = String(record.action || "").toLowerCase().includes("score change via feedback") ||
         (record.feedback && record.feedback !== '');
 
-
-      if (llmScore === 1 && finalScore === 1) {
-
-        // Black checkbox icon, black font
+      // Decision criteria (Hunch LLM Score, Gen AI Score, Confidence) → icon + color
+      // | LLM | GenAI | Confidence | Result        |
+      // |  1  |   1   |    any     | ✓ black       |
+      // |  1  |   0   |   ≥ 0.80   | ✗ red         |
+      // |  1  |   0   |   < 0.80   | ✗ gold/yellow |
+      // |  0  |   1   |   ≥ 0.80   | + green       |
+      // |  0  |   1   |   < 0.80   | + gold/yellow |
+      // |  0  |   0   | feedback   | ✗ grey        |
+      // |  0  |   0   | else       | not listed    |
+      if (llmScore === 1 && genAiScore === 1) {
         icon = '✓';
         color = isHumanFeedbackChange ? 'grey' : 'black';
-
-      } else if (llmScore === 1 && finalScore === 0) {
-        // Red X Icon, Red font for trait name in parentheses
+      } else if (llmScore === 1 && genAiScore === 0 && confidence >= 0.80) {
         icon = '✗';
         color = isHumanFeedbackChange ? 'grey' : 'red';
         displayName = `(${record.traitTitle})`;
-      } else if (llmScore === 0 && finalScore === 0 &&
+      } else if (llmScore === 1 && genAiScore === 0 && confidence < 0.80) {
+        icon = '✗';
+        color = isHumanFeedbackChange ? 'grey' : '#d97706'; // Gold/Yellow
+      } else if (llmScore === 0 && genAiScore === 0 &&
         (String(record.action || "").toLowerCase().includes("score change via feedback") ||
           record.genAiSays?.validationIncorrect === true)) {
-        // Grey color for traits changed via feedback
         icon = '✗';
         color = 'grey';
-      } else if (llmScore === 0 && finalScore === 1) {
-        // Green Plus Sign Icon, Green Font
+      } else if (llmScore === 0 && genAiScore === 1 && confidence >= 0.80) {
         icon = '+';
         color = isHumanFeedbackChange ? 'grey' : 'green';
       } else if (llmScore === 0 && genAiScore === 1 && confidence < 0.80) {
         icon = '+';
-        color = isHumanFeedbackChange ? 'grey' : '#d97706'; // Gold/Yellow (same as caution flag)
+        color = isHumanFeedbackChange ? 'grey' : '#d97706'; // Gold/Yellow
       } else {
-        // llmScore 0, finalScore 0 - not listed
-        return null;
+        return null; // LLM 0, GenAI 0, no feedback – not listed
       }
 
       return {
@@ -996,7 +1021,7 @@ const GenAITraitValidationForm = () => {
             position: 'sticky',
             top: 0,
             zIndex: 10,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #F15C4B 0%, #d94a3b 100%)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
           }}>
             <tr>
@@ -1228,13 +1253,13 @@ const GenAITraitValidationForm = () => {
               width: '80px',
               height: '80px',
               border: '6px solid rgba(243, 243, 243, 0.5)',
-              borderTop: '6px solid #667eea',
+              borderTop: '6px solid #F15C4B',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               marginBottom: '20px'
             }} />
             <h3 style={{
-              color: '#667eea',
+              color: '#F15C4B',
               fontSize: '20px',
               fontWeight: '600',
               marginBottom: '10px',
@@ -1261,7 +1286,18 @@ const GenAITraitValidationForm = () => {
             `}</style>
           </div>
         )}
-        <h1>GenAI Trait Validation Form</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '30px', flexWrap: 'wrap' }}>
+          <div style={{ backgroundColor: '#000', padding: '8px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
+            <img
+              src={`${import.meta.env.BASE_URL || '/'}hunch-logo.png`}
+              alt="Hunch"
+              style={{ height: '48px', width: 'auto', display: 'block', objectFit: 'contain' }}
+              onError={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling?.classList.add('show'); }}
+            />
+            <div className="logo-fallback" style={{ display: 'none', height: '48px', alignItems: 'center', fontSize: '24px', fontWeight: '700', color: 'white' }}>Hunch</div>
+          </div>
+          <h1 style={{ margin: 0 }}>GenAI Trait Validation Form</h1>
+        </div>
         <form onSubmit={handleSubmit} onReset={handleReset}>
           <div className="form-group">
             <label htmlFor="projectId">
@@ -1515,6 +1551,12 @@ const GenAITraitValidationForm = () => {
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>&lt; 0.80</td>
                   <td style={{ border: '1px solid #eee', padding: '6px' }}>Gold/Yellow fill + ➕</td>
                 </tr>
+                <tr>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>No (0)</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>feedback</td>
+                  <td style={{ border: '1px solid #eee', padding: '6px' }}>Grey fill + ✗ (score change via feedback)</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -1541,7 +1583,7 @@ const GenAITraitValidationForm = () => {
                   position: 'sticky',
                   top: 0,
                   zIndex: 10,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: 'linear-gradient(135deg, #F15C4B 0%, #d94a3b 100%)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                 }}>
                   <tr>
@@ -2007,7 +2049,7 @@ const GenAITraitValidationForm = () => {
                             color: '#999',
                             fontStyle: 'italic'
                           }}>
-                            {item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}
+                            {getTimeAgo(item.timestamp)}
                           </span>
                         </div>
                         <div style={{ marginBottom: '5px', color: '#555' }}>
@@ -2054,7 +2096,7 @@ const GenAITraitValidationForm = () => {
 
                   try {
                     // TODO: Replace with actual API endpoint
-                    const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback`, {
+                    const response = await fetch(`http://localhost:3000/api/traits/feedback`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -2199,7 +2241,7 @@ const GenAITraitValidationForm = () => {
                       boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 'bold', color: '#667eea' }}>{fb.trait}</span>
+                        <span style={{ fontWeight: 'bold', color: '#F15C4B' }}>{fb.trait}</span>
                         <span style={{
                           fontSize: '11px',
                           padding: '2px 6px',
@@ -2447,7 +2489,7 @@ const GenAITraitValidationForm = () => {
 
                   setIsSubmittingFeedback(true);
                   try {
-                    const response = await fetch('https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/feedback', {
+                    const response = await fetch('http://localhost:3000/api/traits/feedback', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
