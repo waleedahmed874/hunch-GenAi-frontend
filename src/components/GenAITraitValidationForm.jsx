@@ -226,7 +226,7 @@ const GenAITraitValidationForm = () => {
       if (error.message === 'Failed to fetch') {
         errorMessage = 'Failed to connect to the API server. Please ensure:\n\n' +
           '1. The backend server is running on http://localhost:8000\n' +
-          '2. The server has CORS enabled to accept requests from https://hunchgenaitest-320866101884.us-central1.run.app\n' +
+          '2. The server has CORS enabled to accept requests fromhttps://hunchgenaitest-320866101884.us-central1.run.app\n' +
           '3. The /batch_classify endpoint is accessible';
       }
 
@@ -314,131 +314,114 @@ const GenAITraitValidationForm = () => {
     setFeedbackText('');
   };
 
-  // Function to download data as CSV
+  // Escape CSV cell: wrap in quotes and escape internal quotes
+  const csvEscape = (val) => {
+    if (val == null) return '""';
+    const s = String(val).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+
+  // Download as CSV – Trait Guide 2.0 format (17 columns, one row per trait).
+  // Per spec: combine feedback from both modals into Corrective Feedback column only; Project ID as entered.
   const handleDownloadCSV = () => {
     if (tableData.length === 0) {
       alert('No data to export');
       return;
     }
 
-    // Prepare CSV data
-    const csvRows = [];
-
-    // CSV Headers
     const headers = [
-      'Document ID',
-      'Version',
-      'Type',
-      'Text',
-      'Original Traits',
-      'GenAI Made Changes',
-      'Traits Added',
-      'Added Traits Feedback',
-      'Traits Removed',
-      'Removed Traits Feedback',
-      'Unchanged Traits',
-      'Unchanged Traits Feedback',
-      'Total Original',
-      'Total Added',
-      'Total Removed'
+      'Trait',
+      'Reaction Type',
+      'Initial Reaction',
+      'Context Prompt',
+      'Hunch LLM Score',
+      'Gen AI Score',
+      'Gen AI Score Confidence',
+      'Gen AI Confidence Status',
+      'Gen AI Rationale',
+      'Correct Final Score',
+      'Corrective Feedback',
+      'Missing Trait Feedback',
+      'Row Number',
+      'Project ID',
+      'Concept Name',
+      'Hunch ID',
+      'Version'
     ];
-    csvRows.push(headers.join(','));
+    const csvRows = [headers.map(csvEscape).join(',')];
+    let rowNumber = 0;
+    // Project ID exactly as entered in the inputs
+    // const projectId = formData.projectId || '';
 
-    // Helper: get feedback string from feedback array filtered by shouldExist
-    function getFeedbackByShouldExist(feedbackArray, shouldExistValue) {
-      if (!Array.isArray(feedbackArray)) return '';
-      return feedbackArray
-        .filter(fb => fb.shouldExist === shouldExistValue)
-        .map(fb => {
-          const feedbackText = fb.text ? fb.text.replace(/\"/g, '"') : '';
-          return `${fb.trait} (feedback: ${feedbackText}, shouldExist: ${fb.shouldExist})`;
-        })
-        .join('; ');
-    }
-
-    // Helper: get feedback string for unchanged traits (no shouldExist or null)
-    function getUnchangedFeedback(feedbackArray) {
-      if (!Array.isArray(feedbackArray)) return '';
-      return feedbackArray
-        .filter(fb => fb.shouldExist === undefined || fb.shouldExist === null)
-        .map(fb => {
-          const feedbackText = fb.text ? fb.text.replace(/\"/g, '"') : '';
-          return `${fb.trait} (feedback: ${feedbackText})`;
-        })
-        .join('; ');
-    }
-
-    // Process each document
     tableData.forEach((item) => {
-      // Process Initial Reaction
-      if (item.initial_reaction) {
-        const analysis = analyzeTraits(item, 'initial_reaction');
-        const feedbackArray = item.initial_reaction.feedback || [];
-        if (analysis) {
-          const addedFeedback = getFeedbackByShouldExist(feedbackArray, true);
-          const removedFeedback = getFeedbackByShouldExist(feedbackArray, false);
-          const unchangedFeedback = getUnchangedFeedback(feedbackArray);
-          const row = [
-            `"${item._id || ''}"`,
-            `"${item.version || ''}"`,
-            `"INITIAL_REACTION"`,
-            `"${(item.initial_reaction.text || '').replace(/\"/g, '"')}"`,
-            `"${analysis.originalTraits}"`,
-            `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
-            `"${analysis.addedTraits}"`,
-            `"${addedFeedback}"`,
-            `"${analysis.removedTraits}"`,
-            `"${removedFeedback}"`,
-            `"${analysis.unchangedTraits}"`,
-            `"${unchangedFeedback}"`,
-            analysis.totalOriginal,
-            analysis.totalAdded,
-            analysis.totalRemoved
-          ];
-          csvRows.push(row.join(','));
-        }
-      }
+      const initialReactionText = (item.initial_reaction?.text || '').trim();
+      const contextPromptText = (item.context_prompt?.text || '').trim();
+      const conceptName = item.concept_name ?? '';
+      const hunchId = item.hunch_id ?? '';
+      const version = item.version ?? '';
+      const projectId = item.project_id || '';
 
-      // Process Context Prompt
-      if (item.context_prompt) {
-        const analysis = analyzeTraits(item, 'context_prompt');
-        const feedbackArray = item.context_prompt.feedback || [];
-        if (analysis) {
-          const addedFeedback = getFeedbackByShouldExist(feedbackArray, true);
-          const removedFeedback = getFeedbackByShouldExist(feedbackArray, false);
-          const unchangedFeedback = getUnchangedFeedback(feedbackArray);
-          const row = [
-            `"${item._id || ''}"`,
-            `"${item.version || ''}"`,
-            `"CONTEXT_PROMPT"`,
-            `"${(item.context_prompt.text || '').replace(/\"/g, '"')}"`,
-            `"${analysis.originalTraits}"`,
-            `"${analysis.hasChanges ? 'Yes' : 'No'}"`,
-            `"${analysis.addedTraits}"`,
-            `"${addedFeedback}"`,
-            `"${analysis.removedTraits}"`,
-            `"${removedFeedback}"`,
-            `"${analysis.unchangedTraits}"`,
-            `"${unchangedFeedback}"`,
-            analysis.totalOriginal,
-            analysis.totalAdded,
-            analysis.totalRemoved
-          ];
-          csvRows.push(row.join(','));
+      const emitRow = (record, reactionType) => {
+        rowNumber += 1;
+        const llmScore = record.llmScore ?? 0;
+        const genAiScore = record.genAiSays?.score ?? 0;
+        const confidence = record.genAiSays?.confidence ?? null;
+        const finalScore = record.finalScore ?? 0;
+        const rationale = record.genAiSays?.rationale ?? '';
+        const feedback = (record.feedback || record.genAiSays?.feedback || '').trim();
+
+        // 0/0 with feedback or score change via feedback → Missing Trait Feedback; else → Corrective Feedback
+        const isZeroZeroWithFeedback = llmScore === 0 && genAiScore === 0;
+        const correctiveFeedback = isZeroZeroWithFeedback ? '' : feedback;
+        const missingTraitFeedback = isZeroZeroWithFeedback ? feedback : '';
+
+        let confidenceStatus = '';
+        if (record.genAiSays == null || (record.genAiSays?.score == null && record.genAiSays?.confidence == null)) {
+          confidenceStatus = 'Trait Missing Not Scored';
+        } else if (confidence != null && confidence >= 0.8) {
+          confidenceStatus = 'Gen AI is Confident';
+        } else if (confidence != null && confidence < 0.8) {
+          confidenceStatus = 'GenAI is Unsure (Low Confidence)';
         }
-      }
+
+        const genAiScoreDisplay = genAiScore === 1 ? '1 %' : String(genAiScore);
+        const confidenceDisplay = confidence != null ? (Math.round(confidence * 100) + '%') : '';
+
+        const traitDisplay = (record.llmScore === 1 && record.finalScore === 0)
+          ? `(${record.traitTitle || ''})`
+          : (record.traitTitle || '');
+
+        const row = [
+          csvEscape(traitDisplay),
+          csvEscape(reactionType),
+          csvEscape(initialReactionText),
+          csvEscape(contextPromptText),
+          llmScore,
+          genAiScoreDisplay,
+          csvEscape(confidenceDisplay),
+          csvEscape(confidenceStatus),
+          csvEscape(rationale),
+          finalScore,
+          csvEscape(correctiveFeedback),
+          csvEscape(missingTraitFeedback),
+          rowNumber,
+          csvEscape(projectId),
+          csvEscape(conceptName),
+          csvEscape(hunchId),
+          csvEscape(version)
+        ];
+        csvRows.push(row.join(','));
+      };
+
+      processTraitsForExport(item.initial_reaction?.genAiRecords || []).forEach((record) => emitRow(record, 'Initial Reaction'));
+      processTraitsForExport(item.context_prompt?.genAiRecords || []).forEach((record) => emitRow(record, 'Context Prompt'));
     });
 
-    // Create CSV content
     const csvContent = csvRows.join('\n');
-
-    // Create blob and download
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute('href', url);
-    link.setAttribute('download', `traits_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('href', URL.createObjectURL(blob));
+    link.setAttribute('download', `Trait_Guide_export_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -894,6 +877,19 @@ const GenAITraitValidationForm = () => {
         history: record.history || []
       };
     }).filter(trait => trait !== null);
+  };
+
+  // For export only: filter genAiRecords to exclude 0/0 traits unless "score change via feedback" or feedback is non-empty
+  const processTraitsForExport = (genAiRecords) => {
+    if (!genAiRecords || !genAiRecords.length) return [];
+    return genAiRecords.filter((record) => {
+      const llm = record.llmScore ?? 0;
+      const gen = record.genAiSays?.score ?? 0;
+      if (llm !== 0 || gen !== 0) return true;
+      const hasScoreChange = String(record.action || "").toLowerCase().includes("score change via feedback");
+      const hasFb = (record.feedback && String(record.feedback).trim() !== "") || (record.genAiSays?.feedback && String(record.genAiSays.feedback).trim() !== "");
+      return hasScoreChange || hasFb;
+    });
   };
 
   // Helper function to render response table
