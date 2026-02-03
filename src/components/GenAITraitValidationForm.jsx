@@ -384,7 +384,7 @@ const GenAITraitValidationForm = () => {
           confidenceStatus = 'GenAI is Unsure (Low Confidence)';
         }
 
-        const genAiScoreDisplay = genAiScore === 1 ? '1 %' : String(genAiScore);
+        const genAiScoreDisplay = genAiScore === 1 ? '1' : String(genAiScore);
         const confidenceDisplay = confidence != null ? (Math.round(confidence * 100) + '%') : '';
 
         const traitDisplay = (record.llmScore === 1 && record.finalScore === 0)
