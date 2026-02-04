@@ -349,11 +349,11 @@ const GenAITraitValidationForm = () => {
       'Version'
     ];
     const csvRows = [headers.map(csvEscape).join(',')];
-    let rowNumber = 0;
     // Project ID exactly as entered in the inputs
     // const projectId = formData.projectId || '';
 
-    tableData.forEach((item) => {
+    tableData.forEach((item, rowIndex) => {
+      const tableRowNumber = rowIndex + 1; // same as "No" in the table below Decision criteria
       const initialReactionText = (item.initial_reaction?.text || '').trim();
       const contextPromptText = (item.context_prompt?.text || '').trim();
       const conceptName = item.concept_name ?? '';
@@ -362,7 +362,6 @@ const GenAITraitValidationForm = () => {
       const projectId = item.project_id || '';
 
       const emitRow = (record, reactionType) => {
-        rowNumber += 1;
         const llmScore = record.llmScore ?? 0;
         const genAiScore = record.genAiSays?.score ?? 0;
         const confidence = record.genAiSays?.confidence ?? null;
@@ -387,9 +386,10 @@ const GenAITraitValidationForm = () => {
         const genAiScoreDisplay = genAiScore === 1 ? '1' : String(genAiScore);
         const confidenceDisplay = confidence != null ? (Math.round(confidence * 100) + '%') : '';
 
+        const rawTitle = record.traitTitle || '';
         const traitDisplay = (record.llmScore === 1 && record.finalScore === 0)
-          ? `(${record.traitTitle || ''})`
-          : (record.traitTitle || '');
+          ? (rawTitle.trim().startsWith('(') ? rawTitle : `(${rawTitle})`)
+          : rawTitle;
 
         const row = [
           csvEscape(traitDisplay),
@@ -404,7 +404,7 @@ const GenAITraitValidationForm = () => {
           finalScore,
           csvEscape(correctiveFeedback),
           csvEscape(missingTraitFeedback),
-          rowNumber,
+          tableRowNumber,
           csvEscape(projectId),
           csvEscape(conceptName),
           csvEscape(hunchId),
