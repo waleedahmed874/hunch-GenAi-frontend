@@ -343,6 +343,7 @@ const GenAITraitValidationForm = () => {
       'Corrective Feedback',
       'Missing Trait Feedback',
       'Row Number',
+      'Review Status',
       'Project ID',
       'Concept Name',
       'Hunch ID',
@@ -360,6 +361,7 @@ const GenAITraitValidationForm = () => {
       const hunchId = item.hunch_id ?? '';
       const version = item.version ?? '';
       const projectId = item.project_id || '';
+      const reviewStatusDisplay = (item.review_status || item.isReviewed) ? 'Completed' : 'Pending';
 
       const emitRow = (record, reactionType) => {
         const llmScore = record.llmScore ?? 0;
@@ -405,6 +407,7 @@ const GenAITraitValidationForm = () => {
           csvEscape(correctiveFeedback),
           csvEscape(missingTraitFeedback),
           tableRowNumber,
+          csvEscape(reviewStatusDisplay),
           csvEscape(projectId),
           csvEscape(conceptName),
           csvEscape(hunchId),
@@ -433,27 +436,6 @@ const GenAITraitValidationForm = () => {
     const newStatus = !isCurrentlyReviewed;
     console.log(`Toggling status for ${id}: ${isCurrentlyReviewed} -> ${newStatus}`);
 
-    const updateItems = (items, status) => {
-      if (!Array.isArray(items)) return items;
-      return items.map(item => {
-        if (String(item._id) === String(id)) {
-          return { ...item, isReviewed: status, review_status: status };
-        }
-        return item;
-      });
-    };
-
-    // Robust state updates
-    setTableData(prev => updateItems(prev, newStatus));
-
-    setApiResponse(prev => {
-      if (!prev) return prev;
-      if (Array.isArray(prev)) return updateItems(prev, newStatus);
-      if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateItems(prev.data, newStatus) };
-      if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateItems(prev.results, newStatus) };
-      return prev;
-    });
-
     try {
       const response = await fetch(`https://hunchgenaitest-320866101884.us-central1.run.app/api/traits/status`, {
         method: 'POST',
@@ -467,43 +449,9 @@ const GenAITraitValidationForm = () => {
 
       const result = await response.json();
       console.log('Status update result:', result);
-
-      if (result.success && result.data) {
-        const finalUpdate = (items) => {
-          if (!Array.isArray(items)) return items;
-          return items.map(item => {
-            if (String(item._id) === String(id)) {
-              const updatedRecord = { ...result.data };
-              if (updatedRecord.review_status === undefined && updatedRecord.isReviewed === undefined) {
-                updatedRecord.review_status = newStatus;
-                updatedRecord.isReviewed = newStatus;
-              }
-              return updatedRecord;
-            }
-            return item;
-          });
-        };
-
-        setTableData(prev => finalUpdate(prev));
-
-        setApiResponse(prev => {
-          if (!prev) return prev;
-          if (Array.isArray(prev)) return finalUpdate(prev);
-          if (prev.data && Array.isArray(prev.data)) return { ...prev, data: finalUpdate(prev.data) };
-          if (prev.results && Array.isArray(prev.results)) return { ...prev, results: finalUpdate(prev.results) };
-          return prev;
-        });
-      }
+      // Row will be updated via WebSocket 'review_status_updated' event
     } catch (error) {
       console.error('Error updating status:', error);
-      setTableData(prev => updateItems(prev, isCurrentlyReviewed));
-      setApiResponse(prev => {
-        if (!prev) return prev;
-        if (Array.isArray(prev)) return updateItems(prev, isCurrentlyReviewed);
-        if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateItems(prev.data, isCurrentlyReviewed) };
-        if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateItems(prev.results, isCurrentlyReviewed) };
-        return prev;
-      });
       alert(`Failed to update status: ${error.message}`);
     }
   };
@@ -702,6 +650,30 @@ const GenAITraitValidationForm = () => {
             });
           };
 
+          setTableData(prev => updateRow(prev));
+          setApiResponse(prev => {
+            if (!prev) return prev;
+            if (Array.isArray(prev)) return updateRow(prev);
+            if (prev.data && Array.isArray(prev.data)) return { ...prev, data: updateRow(prev.data) };
+            if (prev.results && Array.isArray(prev.results)) return { ...prev, results: updateRow(prev.results) };
+            return prev;
+          });
+        }
+        break;
+
+      case 'review_status_updated':
+        console.log('🔄 Review status updated:', data);
+        if (data.updatedDoc && data.documentId) {
+          const updateRow = (items) => {
+            if (!Array.isArray(items)) return items;
+            return items.map((item) => {
+              const itemId = item._id || item.id;
+              if (itemId && String(itemId) === String(data.documentId)) {
+                return data.updatedDoc;
+              }
+              return item;
+            });
+          };
           setTableData(prev => updateRow(prev));
           setApiResponse(prev => {
             if (!prev) return prev;
