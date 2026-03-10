@@ -388,10 +388,7 @@ const GenAITraitValidationForm = () => {
         const genAiScoreDisplay = genAiScore === 1 ? '1' : String(genAiScore);
         const confidenceDisplay = confidence != null ? (Math.round(confidence * 100) + '%') : '';
 
-        const rawTitle = record.traitTitle || '';
-        const traitDisplay = (record.llmScore === 1 && record.finalScore === 0)
-          ? (rawTitle.trim().startsWith('(') ? rawTitle : `(${rawTitle})`)
-          : rawTitle;
+        const traitDisplay = record.traitTitle || '';
 
         const row = [
           csvEscape(traitDisplay),
@@ -812,10 +809,11 @@ const GenAITraitValidationForm = () => {
       } else if (llmScore === 1 && genAiScore === 0 && confidence >= 0.80) {
         icon = '✗';
         color = isHumanFeedbackChange ? 'grey' : 'red';
-        displayName = `(${record.traitTitle})`;
+        displayName = record.traitTitle;
       } else if (llmScore === 1 && genAiScore === 0 && confidence < 0.80) {
         icon = '✗';
         color = isHumanFeedbackChange ? 'grey' : '#d97706'; // Gold/Yellow
+        displayName = record.traitTitle;
       } else if (llmScore === 0 && genAiScore === 0 &&
         (String(record.action || "").toLowerCase().includes("score change via feedback") ||
           record.genAiSays?.validationIncorrect === true)) {
