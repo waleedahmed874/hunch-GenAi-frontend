@@ -321,8 +321,8 @@ const GenAITraitValidationForm = () => {
     return `"${s}"`;
   };
 
-  // Download as CSV – Trait Guide 2.0 format (17 columns, one row per trait).
-  // Per spec: combine feedback from both modals into Corrective Feedback column only; Project ID as entered.
+  // Download as CSV – Trait Guide 2.0 format. Export ALL rows (including 0/0); no filter by "score change via feedback".
+  // Where a row has feedback, it is added in Corrective Feedback or Missing Trait Feedback column.
   const handleDownloadCSV = () => {
     if (tableData.length === 0) {
       alert('No data to export');
@@ -342,6 +342,7 @@ const GenAITraitValidationForm = () => {
       'Correct Final Score',
       'Corrective Feedback',
       'Missing Trait Feedback',
+      'Analysis Category',
       'Row Number',
       'Review Status',
       'Project ID',
@@ -371,10 +372,10 @@ const GenAITraitValidationForm = () => {
         const rationale = record.genAiSays?.rationale ?? '';
         const feedback = (record.feedback || record.genAiSays?.feedback || '').trim();
 
-        // 0/0 with feedback or score change via feedback → Missing Trait Feedback; else → Corrective Feedback
-        const isZeroZeroWithFeedback = llmScore === 0 && genAiScore === 0;
-        const correctiveFeedback = isZeroZeroWithFeedback ? '' : feedback;
-        const missingTraitFeedback = isZeroZeroWithFeedback ? feedback : '';
+        // 0/0 → feedback in Missing Trait Feedback column; else → Corrective Feedback. No extra check; if feedback exists it is added.
+        const isZeroZero = llmScore === 0 && genAiScore === 0;
+        const correctiveFeedback = isZeroZero ? '' : feedback;
+        const missingTraitFeedback = isZeroZero ? feedback : '';
 
         let confidenceStatus = '';
         if (record.genAiSays == null || (record.genAiSays?.score == null && record.genAiSays?.confidence == null)) {
@@ -390,6 +391,13 @@ const GenAITraitValidationForm = () => {
 
         const traitDisplay = record.traitTitle || '';
 
+        // Analysis Category for client metrics: True Positive, True Negative, GenAI Agreement Positive/Negative, False Positive/Negative Correction
+        let analysisCategory = 'Other';
+        if (llmScore === 1 && genAiScore === 1 && finalScore === 1) analysisCategory = 'True Positive'; // GenAI Agreement Positive
+        else if (llmScore === 0 && genAiScore === 0 && finalScore === 0) analysisCategory = 'True Negative'; // GenAI Agreement Negative
+        else if (llmScore === 1 && genAiScore === 0 && finalScore === 0) analysisCategory = 'False Positive Correction';
+        else if (llmScore === 0 && genAiScore === 1 && finalScore === 1) analysisCategory = 'False Negative Correction';
+
         const row = [
           csvEscape(traitDisplay),
           csvEscape(reactionType),
@@ -403,6 +411,7 @@ const GenAITraitValidationForm = () => {
           finalScore,
           csvEscape(correctiveFeedback),
           csvEscape(missingTraitFeedback),
+          csvEscape(analysisCategory),
           tableRowNumber,
           csvEscape(reviewStatusDisplay),
           csvEscape(projectId),
@@ -413,8 +422,8 @@ const GenAITraitValidationForm = () => {
         csvRows.push(row.join(','));
       };
 
-      processTraitsForExport(item.initial_reaction?.genAiRecords || []).forEach((record) => emitRow(record, 'Initial Reaction'));
-      processTraitsForExport(item.context_prompt?.genAiRecords || []).forEach((record) => emitRow(record, 'Context Prompt'));
+      (item.initial_reaction?.genAiRecords || []).forEach((record) => emitRow(record, 'Initial Reaction'));
+      (item.context_prompt?.genAiRecords || []).forEach((record) => emitRow(record, 'Context Prompt'));
     });
 
     const csvContent = csvRows.join('\n');
