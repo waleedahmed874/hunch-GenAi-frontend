@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Select from 'react-select';
+import * as XLSX from 'xlsx';
 import './GenAITraitValidationForm.css';
 
 const GenAITraitValidationForm = () => {
@@ -321,8 +322,62 @@ const GenAITraitValidationForm = () => {
     return `"${s}"`;
   };
 
-  // Download as CSV – Trait Guide 2.0 format. Export ALL rows (including 0/0); no filter by "score change via feedback".
-  // Where a row has feedback, it is added in Corrective Feedback or Missing Trait Feedback column.
+  // Build per-trait aggregates from tableData for report tabs: Hunch Accuracy, GenAI Agreement, GenAI Change.
+  const buildPerTraitReportAggregates = (data) => {
+    const byTrait = {};
+    const addRecord = (record, item, rowIndex) => {
+      const t = (record.traitTitle || '').trim();
+      if (!t) return;
+      const llm = record.llmScore ?? 0;
+      const gen = record.genAiSays?.score ?? 0;
+      const final = record.finalScore ?? 0;
+      if (!byTrait[t]) {
+        byTrait[t] = {
+          hunch0: 0,
+          hunch0Correct: 0,
+          hunch1: 0,
+          hunch1Correct: 0,
+          genAgree0: 0,
+          genAgree0Correct: 0,
+          genAgree1: 0,
+          genAgree1Correct: 0,
+          genChangeTo1: 0,
+          genChangeTo1Correct: 0,
+          genChangeTo0: 0,
+          genChangeTo0Correct: 0
+        };
+      }
+      const row = byTrait[t];
+      if (llm === 0) {
+        row.hunch0 += 1;
+        if (final === 0) row.hunch0Correct += 1;
+        if (gen === 0) {
+          row.genAgree0 += 1;
+          if (final === 0) row.genAgree0Correct += 1;
+        } else {
+          row.genChangeTo1 += 1;
+          if (final === 1) row.genChangeTo1Correct += 1;
+        }
+      } else {
+        row.hunch1 += 1;
+        if (final === 1) row.hunch1Correct += 1;
+        if (gen === 1) {
+          row.genAgree1 += 1;
+          if (final === 1) row.genAgree1Correct += 1;
+        } else {
+          row.genChangeTo0 += 1;
+          if (final === 0) row.genChangeTo0Correct += 1;
+        }
+      }
+    };
+    data.forEach((item, rowIndex) => {
+      (item.initial_reaction?.genAiRecords || []).forEach((r) => addRecord(r, item, rowIndex));
+      (item.context_prompt?.genAiRecords || []).forEach((r) => addRecord(r, item, rowIndex));
+    });
+    return byTrait;
+  };
+
+  // Download as XLSX with 4 sheets: Trait Data (Trait Guide 2.0) + 3 report tabs (Hunch Accuracy, GenAI Agreement, GenAI Change).
   const handleDownloadCSV = () => {
     if (tableData.length === 0) {
       alert('No data to export');
@@ -350,12 +405,10 @@ const GenAITraitValidationForm = () => {
       'Hunch ID',
       'Version'
     ];
-    const csvRows = [headers.map(csvEscape).join(',')];
-    // Project ID exactly as entered in the inputs
-    // const projectId = formData.projectId || '';
 
+    const traitDataRows = [headers];
     tableData.forEach((item, rowIndex) => {
-      const tableRowNumber = rowIndex + 1; // same as "No" in the table below Decision criteria
+      const tableRowNumber = rowIndex + 1;
       const initialReactionText = (item.initial_reaction?.text || '').trim();
       const contextPromptText = (item.context_prompt?.text || '').trim();
       const conceptName = item.concept_name ?? '';
@@ -371,12 +424,9 @@ const GenAITraitValidationForm = () => {
         const finalScore = record.finalScore ?? 0;
         const rationale = record.genAiSays?.rationale ?? '';
         const feedback = (record.feedback || record.genAiSays?.feedback || '').trim();
-
-        // 0/0 → feedback in Missing Trait Feedback column; else → Corrective Feedback. No extra check; if feedback exists it is added.
         const isZeroZero = llmScore === 0 && genAiScore === 0;
         const correctiveFeedback = isZeroZero ? '' : feedback;
         const missingTraitFeedback = isZeroZero ? feedback : '';
-
         let confidenceStatus = '';
         if (record.genAiSays == null || (record.genAiSays?.score == null && record.genAiSays?.confidence == null)) {
           confidenceStatus = 'Trait Missing Not Scored';
@@ -385,56 +435,136 @@ const GenAITraitValidationForm = () => {
         } else if (confidence != null && confidence < 0.8) {
           confidenceStatus = 'GenAI is Unsure (Low Confidence)';
         }
-
         const genAiScoreDisplay = genAiScore === 1 ? '1' : String(genAiScore);
         const confidenceDisplay = confidence != null ? (Math.round(confidence * 100) + '%') : '';
-
         const traitDisplay = record.traitTitle || '';
-
-        // Analysis Category for client metrics: True Positive, True Negative, GenAI Agreement Positive/Negative, False Positive/Negative Correction
         let analysisCategory = 'Other';
-        if (llmScore === 1 && genAiScore === 1 && finalScore === 1) analysisCategory = 'True Positive'; // GenAI Agreement Positive
-        else if (llmScore === 0 && genAiScore === 0 && finalScore === 0) analysisCategory = 'True Negative'; // GenAI Agreement Negative
+        if (llmScore === 1 && genAiScore === 1 && finalScore === 1) analysisCategory = 'True Positive';
+        else if (llmScore === 0 && genAiScore === 0 && finalScore === 0) analysisCategory = 'True Negative';
         else if (llmScore === 1 && genAiScore === 0 && finalScore === 0) analysisCategory = 'False Positive Correction';
         else if (llmScore === 0 && genAiScore === 1 && finalScore === 1) analysisCategory = 'False Negative Correction';
-
-        const row = [
-          csvEscape(traitDisplay),
-          csvEscape(reactionType),
-          csvEscape(initialReactionText),
-          csvEscape(contextPromptText),
+        traitDataRows.push([
+          traitDisplay,
+          reactionType,
+          initialReactionText,
+          contextPromptText,
           llmScore,
           genAiScoreDisplay,
-          csvEscape(confidenceDisplay),
-          csvEscape(confidenceStatus),
-          csvEscape(rationale),
+          confidenceDisplay,
+          confidenceStatus,
+          rationale,
           finalScore,
-          csvEscape(correctiveFeedback),
-          csvEscape(missingTraitFeedback),
-          csvEscape(analysisCategory),
+          correctiveFeedback,
+          missingTraitFeedback,
+          analysisCategory,
           tableRowNumber,
-          csvEscape(reviewStatusDisplay),
-          csvEscape(projectId),
-          csvEscape(conceptName),
-          csvEscape(hunchId),
-          csvEscape(version)
-        ];
-        csvRows.push(row.join(','));
+          reviewStatusDisplay,
+          projectId,
+          conceptName,
+          hunchId,
+          version
+        ]);
       };
-
       (item.initial_reaction?.genAiRecords || []).forEach((record) => emitRow(record, 'Initial Reaction'));
       (item.context_prompt?.genAiRecords || []).forEach((record) => emitRow(record, 'Context Prompt'));
     });
 
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.setAttribute('href', URL.createObjectURL(blob));
-    link.setAttribute('download', `Trait_Guide_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const aggregates = buildPerTraitReportAggregates(tableData);
+    const traitNames = Object.keys(aggregates).sort();
+
+    const hunchAccuracyHeaders = [
+      'Trait',
+      'Hunch LLM Says 0',
+      '# 0s Correct',
+      'Hunch LLM 0 Accuracy Without GenAI Oversight',
+      'Hunch LLM Says 1',
+      '# 1s Correct',
+      'Hunch LLM 1 Accuracy Without GenAI Oversight'
+    ];
+    const hunchAccuracyRows = [hunchAccuracyHeaders];
+    traitNames.forEach((trait) => {
+      const a = aggregates[trait];
+      const acc0 = a.hunch0 > 0 ? Math.round((a.hunch0Correct / a.hunch0) * 100) + '%' : '';
+      const acc1 = a.hunch1 > 0 ? Math.round((a.hunch1Correct / a.hunch1) * 100) + '%' : '';
+      hunchAccuracyRows.push([
+        trait,
+        a.hunch0,
+        a.hunch0Correct,
+        acc0,
+        a.hunch1,
+        a.hunch1Correct,
+        acc1
+      ]);
+    });
+
+    const genAiAgreementHeaders = [
+      'Trait',
+      'Hunch LLM # of 0s',
+      '# GenAI Agreed',
+      '# of Agreements Correct',
+      'GenAI Agreement Accuracy 0',
+      'Hunch LLM # of 1s',
+      '# Gen AI Agreed',
+      '# of Agreements Correct',
+      'GenAI 1 Agreement Accuracy 1'
+    ];
+    const genAiAgreementRows = [genAiAgreementHeaders];
+    traitNames.forEach((trait) => {
+      const a = aggregates[trait];
+      const acc0 = a.genAgree0 > 0 ? Math.round((a.genAgree0Correct / a.genAgree0) * 100) + '%' : '0%';
+      const acc1 = a.genAgree1 > 0 ? Math.round((a.genAgree1Correct / a.genAgree1) * 100) + '%' : '0%';
+      genAiAgreementRows.push([
+        trait,
+        a.hunch0,
+        a.genAgree0,
+        a.genAgree0Correct,
+        acc0,
+        a.hunch1,
+        a.genAgree1,
+        a.genAgree1Correct,
+        acc1
+      ]);
+    });
+
+    const genAiChangeHeaders = [
+      'Trait',
+      'Hunch LLM # of 0s',
+      '# GenAI Changed to 1',
+      '# of Changes Correct',
+      'GenAI Change Accuracy',
+      'Hunch LLM # of 1s',
+      '# Gen AI Changed to 0',
+      '# of Changes Correct',
+      'GenAI 1 Change Accuracy'
+    ];
+    const genAiChangeRows = [genAiChangeHeaders];
+    traitNames.forEach((trait) => {
+      const a = aggregates[trait];
+      const acc01 = a.genChangeTo1 > 0 ? Math.round((a.genChangeTo1Correct / a.genChangeTo1) * 100) + '%' : '';
+      const acc10 = a.genChangeTo0 > 0 ? Math.round((a.genChangeTo0Correct / a.genChangeTo0) * 100) + '%' : '';
+      genAiChangeRows.push([
+        trait,
+        a.hunch0,
+        a.genChangeTo1,
+        a.genChangeTo1Correct,
+        acc01,
+        a.hunch1,
+        a.genChangeTo0,
+        a.genChangeTo0Correct,
+        acc10
+      ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const sheet1 = XLSX.utils.aoa_to_sheet(traitDataRows);
+    const sheet2 = XLSX.utils.aoa_to_sheet(hunchAccuracyRows);
+    const sheet3 = XLSX.utils.aoa_to_sheet(genAiAgreementRows);
+    const sheet4 = XLSX.utils.aoa_to_sheet(genAiChangeRows);
+    XLSX.utils.book_append_sheet(wb, sheet1, 'Trait Data');
+    XLSX.utils.book_append_sheet(wb, sheet2, 'Hunch Accuracy Without GenAI'); // max 31 chars
+    XLSX.utils.book_append_sheet(wb, sheet3, 'GenAI Agreement Accuracy');
+    XLSX.utils.book_append_sheet(wb, sheet4, 'GenAI Change Accuracy');
+    XLSX.writeFile(wb, `Trait_Guide_export_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleStatusToggle = async (id, currentStatus) => {
