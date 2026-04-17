@@ -988,6 +988,18 @@ const GenAITraitValidationForm = () => {
     }).filter(trait => trait !== null);
   };
 
+  // Hunch Traits column (IR + CP): always `initial_reaction.traits` / `context_prompt.traits` (strings or { name | traitTitle }).
+  const normalizeReactionTraitsForDisplay = (traits) => {
+    if (!traits || !Array.isArray(traits)) return [];
+    return traits
+      .map((t) =>
+        typeof t === 'string'
+          ? t.trim()
+          : String(t?.name ?? t?.traitTitle ?? t?.trait ?? t?.title ?? '').trim()
+      )
+      .filter((s) => s.length > 0);
+  };
+
   // For export only: filter genAiRecords to exclude 0/0 traits unless "score change via feedback" or feedback is non-empty
   const processTraitsForExport = (genAiRecords) => {
     if (!genAiRecords || !genAiRecords.length) return [];
@@ -1141,6 +1153,8 @@ const GenAITraitValidationForm = () => {
             {tableRows.map((item, rowIndex) => {
               const irTraits = item.initial_reaction ? processTraits(item.initial_reaction.genAiRecords) : [];
               const cpTraits = item.context_prompt ? processTraits(item.context_prompt.genAiRecords) : [];
+              const irHunchTraitLabels = normalizeReactionTraitsForDisplay(item.initial_reaction?.traits);
+              const cpHunchTraitLabels = normalizeReactionTraitsForDisplay(item.context_prompt?.traits);
 
               const handleIRClick = (e) => {
 
@@ -1230,13 +1244,13 @@ const GenAITraitValidationForm = () => {
                   </td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {irTraits.filter(t => t.llmScore === 1).length > 0 ? (
-                        irTraits.filter(t => t.llmScore === 1).map((trait, index) => (
-                          <span key={index} style={{
+                      {irHunchTraitLabels.length > 0 ? (
+                        irHunchTraitLabels.map((name, index) => (
+                          <span key={`${name}-${index}`} style={{
                             display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
                             background: '#e9ecef', color: '#495057', border: '1px solid #dee2e6'
-                          }} title={trait.name}>
-                            {trait.name}
+                          }} title={name}>
+                            {name}
                           </span>
                         ))
                       ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
@@ -1271,13 +1285,13 @@ const GenAITraitValidationForm = () => {
                   </td>
                   <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {cpTraits.filter(t => t.llmScore === 1).length > 0 ? (
-                        cpTraits.filter(t => t.llmScore === 1).map((trait, index) => (
-                          <span key={index} style={{
+                      {cpHunchTraitLabels.length > 0 ? (
+                        cpHunchTraitLabels.map((name, index) => (
+                          <span key={`${name}-${index}`} style={{
                             display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
                             background: '#e9ecef', color: '#495057', border: '1px solid #dee2e6'
-                          }} title={trait.name}>
-                            {trait.name}
+                          }} title={name}>
+                            {name}
                           </span>
                         ))
                       ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
@@ -1686,6 +1700,8 @@ const GenAITraitValidationForm = () => {
                   {tableData.map((item, rowIndex) => {
                     const irTraits = item.initial_reaction ? processTraits(item.initial_reaction.genAiRecords) : [];
                     const cpTraits = item.context_prompt ? processTraits(item.context_prompt.genAiRecords) : [];
+                    const irHunchTraitLabels = normalizeReactionTraitsForDisplay(item.initial_reaction?.traits);
+                    const cpHunchTraitLabels = normalizeReactionTraitsForDisplay(item.context_prompt?.traits);
 
                     const handleIRClick = (e) => {
                       e.stopPropagation();
@@ -1793,13 +1809,13 @@ const GenAITraitValidationForm = () => {
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {irTraits.filter(t => t.llmScore === 1).length > 0 ? (
-                              irTraits.filter(t => t.llmScore === 1).map((trait, index) => (
-                                <span key={index} style={{
+                            {irHunchTraitLabels.length > 0 ? (
+                              irHunchTraitLabels.map((name, index) => (
+                                <span key={`${name}-${index}`} style={{
                                   display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
                                   background: '#e9ecef', color: '#495057', border: '1px solid #dee2e6'
-                                }} title={trait.name}>
-                                  {trait.name}
+                                }} title={name}>
+                                  {name}
                                 </span>
                               ))
                             ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
@@ -1833,13 +1849,13 @@ const GenAITraitValidationForm = () => {
                         </td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #e8ecf1' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {cpTraits.filter(t => t.llmScore === 1).length > 0 ? (
-                              cpTraits.filter(t => t.llmScore === 1).map((trait, index) => (
-                                <span key={index} style={{
+                            {cpHunchTraitLabels.length > 0 ? (
+                              cpHunchTraitLabels.map((name, index) => (
+                                <span key={`${name}-${index}`} style={{
                                   display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '10px',
                                   background: '#e9ecef', color: '#495057', border: '1px solid #dee2e6'
-                                }} title={trait.name}>
-                                  {trait.name}
+                                }} title={name}>
+                                  {name}
                                 </span>
                               ))
                             ) : <span style={{ color: '#ccc', fontSize: '10px' }}>-</span>}
