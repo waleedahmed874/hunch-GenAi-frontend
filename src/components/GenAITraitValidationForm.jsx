@@ -95,25 +95,20 @@ const GenAITraitValidationForm = () => {
 
     setCsvFile(file);
     const reader = new FileReader();
-
-    reader.onload = (event) => {
-      const text = event.target.result;
-      parseCsv(text);
-    };
-
-    reader.readAsText(file);
+    reader.onload = (event) => parseCsv(event.target.result);
+    reader.readAsArrayBuffer(file);
   };
 
-  // Parse CSV to JSON
-  const parseCsv = (csvText) => {
-    const lines = csvText.split('\n').filter(line => line.trim());
-    if (lines.length === 0) return;
+  // Parse CSV/XLSX to JSON via xlsx (handles quoted commas, embedded newlines, CRLF)
+  const parseCsv = (data) => {
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false, blankrows: false });
+    if (rows.length === 0) return;
 
-    // Get headers
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = rows[0].map(h => String(h).trim());
     setCsvColumns(headers);
 
-    // Validate required columns
     const requiredColumns = ['Context Prompt', 'Initial Reaction', 'Hunch ID', 'Concept Name'];
     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
@@ -125,25 +120,20 @@ const GenAITraitValidationForm = () => {
       return;
     }
 
-    // Parse data rows
     const parsedData = [];
     const previewData = [];
 
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      if (values.length !== headers.length) continue;
+    for (let i = 1; i < rows.length; i++) {
+      const values = rows[i];
+      if (!values || values.every(v => v === '' || v == null)) continue;
 
       const row = {};
       headers.forEach((header, index) => {
-        row[header] = values[index];
+        row[header] = values[index] != null ? String(values[index]).trim() : '';
       });
 
       parsedData.push(row);
-
-      // Store first 5 rows for preview
-      if (i <= 5) {
-        previewData.push(row);
-      }
+      if (previewData.length < 5) previewData.push(row);
     }
 
     setCsvData(parsedData);
